@@ -6,3 +6,4 @@ python-docx
 python-dotenv
 scikit-learn 
 seaborn
+openpyxl
