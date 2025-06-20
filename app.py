@@ -8,54 +8,26 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from openai import OpenAI
 
-# Set page settings
+# Set page layout and title
 st.set_page_config(page_title="Collision Report Generator", layout="centered")
+st.title("🚦 Collision Analysis Report Generator")
+st.markdown("Upload your Excel accident data file to generate a Word report with visual charts and AI-generated descriptions.")
 
-# Load OpenAI API key from Streamlit Secrets
+# Load OpenAI key from Streamlit secrets
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# App title
-st.title("🚦 Collision Analysis Report Generator")
-st.write("Upload an Excel file containing accident data to generate your report.")
-
-st.markdown("""
-<style>
-    .report-title {
-        font-size: 22px;
-        font-weight: 600;
-        color: #2c3e50;
-    }
-    .caption {
-        font-size: 16px;
-        color: gray;
-        margin-bottom: 20px;
-    }
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown('<div class="report-title">Mobility Edge Solution – Collision Analysis Tool</div>', unsafe_allow_html=True)
-st.markdown('<div class="caption">Upload your data and receive a formatted collision summary report powered by AI.</div>', unsafe_allow_html=True)
-
-
 # File uploader
-uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
+uploaded_file = st.file_uploader("📂 Upload your Excel file", type=["xlsx"])
+
+# Confirm app is running
+st.write("✅ App is ready. Waiting for upload...")
 
 if uploaded_file:
     with st.spinner("⏳ Generating your report... please wait..."):
         df = pd.read_excel(uploaded_file)
+        st.success("✅ File uploaded and read successfully.")
 
-        excluded_cols = ['Latitude', 'Longitude', 'X-Coordinate', 'Y-Coordinate']  # ✅ aligned
-
-        ...
-        # (Keep all report logic here)
-
-    st.success("✅ Report is ready!")
-
-        # Select relevant categorical columns
+        # Step 1: Detect usable columns
         excluded_cols = ['Latitude', 'Longitude', 'X-Coordinate', 'Y-Coordinate']
         categorical_cols = [
             col for col in df.columns
@@ -64,23 +36,25 @@ if uploaded_file:
             and 2 <= df[col].nunique() <= 15
         ]
 
+        st.write("🔎 Columns being analyzed:", categorical_cols)
+
         if not categorical_cols:
-            st.warning("⚠️ No suitable categorical columns found for analysis.")
+            st.warning("⚠️ No usable categorical columns found in the dataset.")
         else:
-            # Start building Word report
+            # Step 2: Generate Word report
             doc = Document()
             doc.add_heading("Collision Analysis Report", 0)
-            doc.add_paragraph("Generated automatically by Mobility Edge Solution")
+            doc.add_paragraph("Generated automatically by Mobility Edge Solution.")
             doc.add_page_break()
 
             figure_count = 1
 
-            for col in categorical_cols:
+            for col in categorical_cols[:5]:  # Limit to 5 for demo/testing
                 value_counts = df[col].value_counts()
                 if len(value_counts) < 2:
                     continue
 
-                # Chart creation (in memory)
+                # Create chart in memory
                 img_stream = io.BytesIO()
                 plt.figure(figsize=(6, 4))
                 if len(value_counts) <= 5:
@@ -94,7 +68,7 @@ if uploaded_file:
                 plt.close()
                 img_stream.seek(0)
 
-                # Generate GPT summary
+                # GPT prompt
                 title = col
                 data = value_counts.to_string()
                 prompt = (
@@ -112,9 +86,10 @@ if uploaded_file:
                     )
                     summary = response.choices[0].message.content.strip()
                 except Exception as e:
-                    summary = f"[⚠️ GPT error: {e}]"
+                    summary = f"[GPT error: {e}]"
+                    st.warning(summary)
 
-                # Add section to Word report
+                # Add to Word report
                 doc.add_heading(f"{figure_count}. {col}", level=1)
                 doc.add_picture(img_stream, width=Inches(5.5))
 
@@ -122,23 +97,20 @@ if uploaded_file:
                 caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                 caption.runs[0].italic = True
 
-                paragraph = doc.add_paragraph(summary)
-                paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
-                paragraph.runs[0].font.size = Pt(11)
+                para = doc.add_paragraph(summary)
+                para.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
+                para.runs[0].font.size = Pt(11)
 
                 doc.add_page_break()
                 figure_count += 1
 
-            # Save the Word report
-            report_path = "collision_report.docx"
-            doc.save(report_path)
-            st.success("✅ Report generated!")
+            # Save and provide download link
+            output_path = "collision_report.docx"
+            doc.save(output_path)
+            st.success("✅ Report is ready!")
 
-            # Download button
-            with open(report_path, "rb") as f:
-                st.download_button("📥 Download Report", f, file_name="collision_report.docx")
+            with open(output_path, "rb") as f:
+                st.download_button("📥 Download Word Report", f, file_name="collision_report.docx")
 
-    except Exception as e:
-        st.error(f"❌ Error processing the file: {e}")
 else:
-    st.info("📂 Please upload an Excel file to begin.")
+    st.info("📄 Please upload an Excel file to get started.")
