@@ -47,6 +47,9 @@ uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 if uploaded_file:
     with st.spinner("⏳ Generating your report... please wait..."):
         df = pd.read_excel(uploaded_file)
+
+        excluded_cols = ['Latitude', 'Longitude', 'X-Coordinate', 'Y-Coordinate']  # ✅ aligned
+
         ...
         # (Keep all report logic here)
 
