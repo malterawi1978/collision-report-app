@@ -16,16 +16,41 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # App title
 st.title("🚦 Collision Analysis Report Generator")
-st.write("Upload an Excel file containing accident data to generate a Word report with charts and GPT-written summaries.")
+st.write("Upload an Excel file containing accident data to generate your report.")
+
+st.markdown("""
+<style>
+    .report-title {
+        font-size: 22px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    .caption {
+        font-size: 16px;
+        color: gray;
+        margin-bottom: 20px;
+    }
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="report-title">Mobility Edge Solution – Collision Analysis Tool</div>', unsafe_allow_html=True)
+st.markdown('<div class="caption">Upload your data and receive a formatted collision summary report powered by AI.</div>', unsafe_allow_html=True)
+
 
 # File uploader
 uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
 if uploaded_file:
-    try:
-        # Read uploaded Excel file
+    with st.spinner("⏳ Generating your report... please wait..."):
         df = pd.read_excel(uploaded_file)
-        st.success("✅ File uploaded and read successfully.")
+        ...
+        # (Keep all report logic here)
+
+    st.success("✅ Report is ready!")
 
         # Select relevant categorical columns
         excluded_cols = ['Latitude', 'Longitude', 'X-Coordinate', 'Y-Coordinate']
