@@ -121,16 +121,15 @@ if uploaded_file:
             try:
                 def clean_time_string(t):
                     if pd.isnull(t): return None
-                    t = str(t).lower().strip()
-                    t = re.sub(r'[^0-9]', '', t)  # remove everything except numbers
-                    if len(t) == 4:
-                        return f"{int(t[:2]):02d}:{int(t[2:]):02d}"
-                    elif len(t) == 3:
-                        return f"{int(t[0]):02d}:{int(t[1:]):02d}"
-                    elif len(t) <= 2:
-                        return f"{int(t):02d}:00"
-                    else:
-                        return None
+                    t = str(t).lower().strip().replace('pm', '').replace('am', '')
+                    try:
+                        dt = datetime.strptime(t.strip(), '%H:%M:%S')
+                    except:
+                        try:
+                            dt = datetime.strptime(t.strip(), '%I:%M:%S')
+                        except:
+                            return None
+                    return dt.strftime('%H:%M')
 
                 df['Cleaned Time'] = df['Accident Time'].apply(clean_time_string)
 
@@ -147,6 +146,7 @@ if uploaded_file:
                         return 'Unknown'
 
                 df['Time Period'] = df['Cleaned Time'].apply(classify_period)
+                st.dataframe(df[['Accident Time', 'Cleaned Time', 'Time Period']].head(20))
                 period_order = ['Morning', 'Afternoon', 'Evening', 'Night', 'Unknown']
                 time_grouped = df.groupby(['Time Period', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(period_order)
                 add_section("Accident Type by Time of Day", time_grouped, chart_type="bar")
