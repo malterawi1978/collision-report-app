@@ -51,7 +51,7 @@ df = pd.read_excel(uploaded_file)
 st.success("File read successfully.")
 #        st.success("File read successfully.")
 doc = Document()
-        status.text("🧱 Building report structure...")
+    status.text("🧱 Building report structure...")
 progress.progress(25, text="Creating document header...")
 doc.add_heading("Collision Analysis Report", 0)
         doc.add_paragraph("Prepared automatically by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
