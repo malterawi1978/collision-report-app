@@ -47,6 +47,8 @@ with st.spinner("Generating report. Please wait..."):
         status.text("✅ Reading Excel file...")
 progress.progress(10, text="Reading Excel file...")
 df = pd.read_excel(uploaded_file)
+
+st.success("File read successfully.")
         st.success("File read successfully.")
 
         doc = Document()
