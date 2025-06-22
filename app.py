@@ -82,7 +82,7 @@ if uploaded_file:
             if not grouped.empty:
                 add_section("Severity by Location", grouped.sum(axis=1).sort_values(ascending=False).head(10), chart_type="bar")
 
-        for time_col in ['Accident Year', 'Accident Month', 'Accident Day']:
+        for time_col in ['Accident Year', 'Accident Day']:
             if time_col in df.columns:
                 add_section(f"Accidents by {time_col}", df[time_col].value_counts().sort_index(), chart_type="bar")
 
@@ -109,6 +109,11 @@ if uploaded_file:
                 df['Day Type'] = df['Accident Date'].dt.dayofweek.apply(lambda x: 'Weekend' if x >= 5 else 'Weekday')
                 daytype_grouped = df.groupby(['Day Type', 'Classification Of Accident']).size().unstack(fill_value=0)
                 add_section("Accident Type by Weekday vs Weekend", daytype_grouped, chart_type="bar")
+
+                df['Accident Month'] = df['Accident Date'].dt.month_name()
+                month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+                month_grouped = df.groupby(['Accident Month', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(month_order)
+                add_section("Accident Type by Month", month_grouped, chart_type="bar")
             except Exception as e:
                 st.warning(f"Could not process date-based charts: {e}")
 
