@@ -121,13 +121,14 @@ if uploaded_file:
             try:
                 def clean_time_string(t):
                     if pd.isnull(t): return None
-                    t = str(t).strip()
-                    if re.match(r"^\d{1,2}$", t):
+                    t = str(t).lower().strip()
+                    t = re.sub(r'[^0-9]', '', t)  # remove everything except numbers
+                    if len(t) == 4:
+                        return f"{int(t[:2]):02d}:{int(t[2:]):02d}"
+                    elif len(t) == 3:
+                        return f"{int(t[0]):02d}:{int(t[1:]):02d}"
+                    elif len(t) <= 2:
                         return f"{int(t):02d}:00"
-                    elif re.match(r"^\d{3,4}$", t):
-                        return f"{int(t)//100:02d}:{int(t)%100:02d}"
-                    elif re.match(r"^\d{1,2}:\d{2}$", t):
-                        return t
                     else:
                         return None
 
