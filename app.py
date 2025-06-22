@@ -1,6 +1,7 @@
 import os
 import io
 import streamlit as st
+from PIL import Image
 import pandas as pd
 import matplotlib.pyplot as plt
 from docx import Document
@@ -11,8 +12,17 @@ from datetime import datetime
 import re
 
 # Initialize Streamlit
-st.set_page_config(page_title="Collision Report Generator", layout="centered")
-st.title("🚦 Collision Analysis Report Generator")
+st.set_page_config(
+    page_title="Collisio – Automated Collision Report Generator",
+    page_icon="🚦",
+    layout="centered"
+)
+logo = Image.open("Collisio_Logo.png")
+st.image(logo, width=200)
+
+st.title("🤖 Collisio")
+st.markdown("### Automated Collision Report Generator")
+st.markdown("Upload your traffic accident data to generate a smart report with charts and insights powered by AI.")
 
 st.markdown("**Need help formatting your accident data?**")
 st.markdown("Download our ready-made Excel template to ensure your data is structured correctly before upload.")
