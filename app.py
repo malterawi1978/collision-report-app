@@ -8,6 +8,7 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from openai import OpenAI
 from datetime import datetime
+import re
 
 # Initialize Streamlit
 st.set_page_config(page_title="Collision Report Generator", layout="centered")
@@ -113,22 +114,25 @@ if uploaded_file:
 
         if 'Accident Time' in df.columns and 'Classification Of Accident' in df.columns:
             try:
-                def classify_period(t):
-                    if pd.isnull(t): return 'Unknown'
-                    try:
-                        if isinstance(t, str):
-                            t = t.strip()
-                            if ':' in t:
-                                hour = int(t.split(':')[0])
-                            elif len(t) in [3, 4]:
-                                hour = int(t[:2])
-                            else:
-                                hour = int(t)
-                        elif isinstance(t, (float, int)):
-                            hour = int(t)
-                        else:
-                            return 'Unknown'
+                def clean_time_string(t):
+                    if pd.isnull(t): return None
+                    t = str(t).strip()
+                    if re.match(r"^\d{1,2}$", t):
+                        return f"{int(t):02d}:00"
+                    elif re.match(r"^\d{3,4}$", t):
+                        return f"{int(t)//100:02d}:{int(t)%100:02d}"
+                    elif re.match(r"^\d{1,2}:\d{2}$", t):
+                        return t
+                    else:
+                        return None
 
+                df['Cleaned Time'] = df['Accident Time'].apply(clean_time_string)
+
+                def classify_period(t):
+                    try:
+                        if t is None:
+                            return 'Unknown'
+                        hour = int(t.split(':')[0])
                         if 6 <= hour < 12: return 'Morning'
                         elif 12 <= hour < 17: return 'Afternoon'
                         elif 17 <= hour < 21: return 'Evening'
@@ -136,7 +140,7 @@ if uploaded_file:
                     except:
                         return 'Unknown'
 
-                df['Time Period'] = df['Accident Time'].apply(classify_period)
+                df['Time Period'] = df['Cleaned Time'].apply(classify_period)
                 period_order = ['Morning', 'Afternoon', 'Evening', 'Night', 'Unknown']
                 time_grouped = df.groupby(['Time Period', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(period_order)
                 add_section("Accident Type by Time of Day", time_grouped, chart_type="bar")
