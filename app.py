@@ -100,7 +100,8 @@ if uploaded_file:
             try:
                 df['Accident Date'] = pd.to_datetime(df['Accident Date'], errors='coerce')
                 df['Day of Week'] = df['Accident Date'].dt.day_name()
-                weekday_grouped = df.groupby(['Day of Week', 'Classification Of Accident']).size().unstack(fill_value=0)
+                weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                weekday_grouped = df.groupby(['Day of Week', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(weekday_order)
                 add_section("Accident Type by Day of Week", weekday_grouped, chart_type="bar")
 
                 df['Day Type'] = df['Accident Date'].dt.dayofweek.apply(lambda x: 'Weekend' if x >= 5 else 'Weekday')
@@ -123,7 +124,8 @@ if uploaded_file:
                         return 'Unknown'
 
                 df['Time Period'] = df['Accident Time'].apply(classify_period)
-                time_grouped = df.groupby(['Time Period', 'Classification Of Accident']).size().unstack(fill_value=0)
+                period_order = ['Morning', 'Afternoon', 'Evening', 'Night', 'Unknown']
+                time_grouped = df.groupby(['Time Period', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(period_order)
                 add_section("Accident Type by Time of Day", time_grouped, chart_type="bar")
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
