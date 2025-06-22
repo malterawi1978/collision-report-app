@@ -31,7 +31,7 @@ if uploaded_file:
         section_count = 1
 
         def add_section(title, chart_data, chart_type="bar", prompt_level="basic"):
-            global section_count
+            nonlocal section_count
             if len(chart_data) < 2:
                 return
 
@@ -96,17 +96,19 @@ if uploaded_file:
             if driver_col in df.columns:
                 add_section(f"{driver_col} Trends", df[driver_col].value_counts(), chart_type="bar")
 
-        # Weekday vs Weekend with Accident Type
         if 'Accident Date' in df.columns and 'Classification Of Accident' in df.columns:
             try:
                 df['Accident Date'] = pd.to_datetime(df['Accident Date'], errors='coerce')
-                df['Day Type'] = df['Accident Date'].dt.dayofweek.apply(lambda x: 'Weekend' if x >= 5 else 'Weekday')
-                day_grouped = df.groupby(['Day Type', 'Classification Of Accident']).size().unstack(fill_value=0)
-                add_section("Accident Type by Weekday vs Weekend", day_grouped, chart_type="bar")
-            except Exception as e:
-                st.warning(f"Could not process weekday/weekend: {e}")
+                df['Day of Week'] = df['Accident Date'].dt.day_name()
+                weekday_grouped = df.groupby(['Day of Week', 'Classification Of Accident']).size().unstack(fill_value=0)
+                add_section("Accident Type by Day of Week", weekday_grouped, chart_type="bar")
 
-        # Time of Day with Accident Type
+                df['Day Type'] = df['Accident Date'].dt.dayofweek.apply(lambda x: 'Weekend' if x >= 5 else 'Weekday')
+                daytype_grouped = df.groupby(['Day Type', 'Classification Of Accident']).size().unstack(fill_value=0)
+                add_section("Accident Type by Weekday vs Weekend", daytype_grouped, chart_type="bar")
+            except Exception as e:
+                st.warning(f"Could not process date-based charts: {e}")
+
         if 'Accident Time' in df.columns and 'Classification Of Accident' in df.columns:
             try:
                 def classify_period(t):
