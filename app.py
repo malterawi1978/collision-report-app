@@ -41,12 +41,18 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    with st.spinner("Generating report. Please wait..."):
-        df = pd.read_excel(uploaded_file)
+    progress = st.progress(0, text="🔄 Starting report generation...")
+status = st.empty()
+with st.spinner("Generating report. Please wait..."):
+        status.text("✅ Reading Excel file...")
+progress.progress(10, text="Reading Excel file...")
+df = pd.read_excel(uploaded_file)
         st.success("File read successfully.")
 
         doc = Document()
-        doc.add_heading("Collision Analysis Report", 0)
+        status.text("🧱 Building report structure...")
+progress.progress(25, text="Creating document header...")
+doc.add_heading("Collision Analysis Report", 0)
         doc.add_paragraph("Prepared automatically by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         doc.add_page_break()
 
@@ -183,9 +189,14 @@ if uploaded_file:
         doc.add_paragraph("[Custom collision type diagrams will be rendered based on type and geometry data in future versions.]")
         doc.add_page_break()
 
-        output_path = "collision_report.docx"
+        status.text("📦 Finalizing report...")
+progress.progress(90, text="Saving report...")
+output_path = "collision_report.docx"
         doc.save(output_path)
-        st.success("✅ Report is ready!")
+        progress.progress(100, text="✅ Report ready to download.")
+progress.empty()
+status.text("✅ Done!")
+st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
             st.download_button("📥 Download Report", f, file_name="collision_report.docx")
 else:
