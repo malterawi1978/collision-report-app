@@ -55,7 +55,7 @@ status.text("🧱 Building report structure...")
 progress.progress(25, text="Creating document header...")
 doc.add_heading("Collision Analysis Report", 0)
 doc.add_paragraph("Prepared automatically by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        doc.add_page_break()
+doc.add_page_break()
 
         section_count = 1
 
