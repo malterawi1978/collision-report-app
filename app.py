@@ -33,7 +33,7 @@ if uploaded_file:
         section_counter = 1
 
         def add_chart_and_summary(column, title, chart_type='bar'):
-            nonlocal section_counter
+            global section_counter
             counts = df[column].value_counts()
             if len(counts) < 2:
                 return
