@@ -146,9 +146,9 @@ if uploaded_file:
                         return 'Unknown'
 
                 df['Time Period'] = df['Cleaned Time'].apply(classify_period)
-                st.dataframe(df[['Accident Time', 'Cleaned Time', 'Time Period']].head(20))
-                period_order = ['Morning', 'Afternoon', 'Evening', 'Night', 'Unknown']
-                time_grouped = df.groupby(['Time Period', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(period_order)
+                period_order = ['Morning', 'Afternoon', 'Evening', 'Night']
+                df_filtered = df[df['Time Period'].isin(period_order)]
+                time_grouped = df_filtered.groupby(['Time Period', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(period_order)
                 add_section("Accident Type by Time of Day", time_grouped, chart_type="bar")
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
