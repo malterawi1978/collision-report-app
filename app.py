@@ -57,7 +57,7 @@ doc.add_heading("Collision Analysis Report", 0)
 doc.add_paragraph("Prepared automatically by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 doc.add_page_break()
 
-        section_count = 1
+section_count = 1
 
         def add_section(title, chart_data, chart_type="bar", prompt_level="basic"):
             global section_count
