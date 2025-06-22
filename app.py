@@ -49,7 +49,6 @@ progress.progress(10, text="Reading Excel file...")
 df = pd.read_excel(uploaded_file)
 
 st.success("File read successfully.")
-        st.success("File read successfully.")
 
         doc = Document()
         status.text("🧱 Building report structure...")
