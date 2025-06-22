@@ -1,7 +1,6 @@
 import os
 import io
 import streamlit as st
-from PIL import Image
 import pandas as pd
 import matplotlib.pyplot as plt
 from docx import Document
@@ -10,13 +9,14 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from openai import OpenAI
 from datetime import datetime
 import re
+from PIL import Image
 
-# Initialize Streamlit
 st.set_page_config(
     page_title="Collisio – Automated Collision Report Generator",
     page_icon="🚦",
     layout="centered"
 )
+
 logo = Image.open("Collisio_Logo.png")
 st.image(logo, width=200)
 
@@ -34,30 +34,22 @@ with open("collision_template.xlsx", "rb") as f:
         file_name="collision_template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-st.markdown("Upload an Excel file to generate a detailed Word report.")
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    progress = st.progress(0, text="🔄 Starting report generation...")
-status = st.empty()
-with st.spinner("Generating report. Please wait..."):
-        status.text("✅ Reading Excel file...")
-progress.progress(10, text="Reading Excel file...")
-df = pd.read_excel(uploaded_file)
+    with st.spinner("Generating report. Please wait..."):
+        df = pd.read_excel(uploaded_file)
+        st.success("File read successfully.")
 
-st.success("File read successfully.")
-#        st.success("File read successfully.")
-doc = Document()
-status.text("🧱 Building report structure...")
-progress.progress(25, text="Creating document header...")
-doc.add_heading("Collision Analysis Report", 0)
-doc.add_paragraph("Prepared automatically by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-doc.add_page_break()
+        doc = Document()
+        doc.add_heading("Collision Analysis Report", 0)
+        doc.add_paragraph("Prepared automatically by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        doc.add_page_break()
 
-section_count = 1
+        section_count = 1
 
         def add_section(title, chart_data, chart_type="bar", prompt_level="basic"):
             global section_count
@@ -78,7 +70,12 @@ section_count = 1
             plt.close()
             img_stream.seek(0)
 
-            prompt = f"You are a traffic safety analyst. The chart below shows accident distribution titled '{title}'. Summarize key findings and highlight any safety-critical patterns.\n\nData:\n{chart_data.head(10).to_string()}"
+            prompt = (
+                f"You are a road safety analyst. Write a short professional summary "
+                f"of this accident chart titled '{title}'.\n\n"
+                f"Data: {chart_data.head(10).to_string()}\n\n"
+                f"Highlight the most common types and any interesting patterns."
+            )
 
             try:
                 response = client.chat.completions.create(
@@ -101,7 +98,6 @@ section_count = 1
             doc.add_page_break()
             section_count += 1
 
-        # SECTION LOGIC
         if 'Classification Of Accident' in df.columns:
             add_section("Accident Severity Distribution", df['Classification Of Accident'].value_counts(), chart_type="pie")
 
@@ -190,14 +186,9 @@ section_count = 1
         doc.add_paragraph("[Custom collision type diagrams will be rendered based on type and geometry data in future versions.]")
         doc.add_page_break()
 
-        status.text("📦 Finalizing report...")
-progress.progress(90, text="Saving report...")
-output_path = "collision_report.docx"
+        output_path = "collision_report.docx"
         doc.save(output_path)
-        progress.progress(100, text="✅ Report ready to download.")
-progress.empty()
-status.text("✅ Done!")
-st.success("✅ Report is ready!")
+        st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
             st.download_button("📥 Download Report", f, file_name="collision_report.docx")
 else:
