@@ -40,8 +40,9 @@ if uploaded_file:
             if chart_type == "pie" and len(chart_data) <= 6:
                 plt.pie(chart_data, labels=chart_data.index, autopct='%1.1f%%')
             else:
-                chart_data.plot(kind="bar", stacked=True if isinstance(chart_data, pd.DataFrame) else False)
+                ax = chart_data.plot(kind="bar", stacked=True if isinstance(chart_data, pd.DataFrame) else False)
                 plt.xticks(rotation=45, ha='right')
+                ax.set_ylabel("Number of Accidents")
             plt.title(title)
             plt.tight_layout()
             plt.savefig(img_stream, format="png")
@@ -115,7 +116,19 @@ if uploaded_file:
                 def classify_period(t):
                     if pd.isnull(t): return 'Unknown'
                     try:
-                        hour = int(str(t).split(':')[0])
+                        if isinstance(t, str):
+                            t = t.strip()
+                            if ':' in t:
+                                hour = int(t.split(':')[0])
+                            elif len(t) in [3, 4]:
+                                hour = int(t[:2])
+                            else:
+                                hour = int(t)
+                        elif isinstance(t, (float, int)):
+                            hour = int(t)
+                        else:
+                            return 'Unknown'
+
                         if 6 <= hour < 12: return 'Morning'
                         elif 12 <= hour < 17: return 'Afternoon'
                         elif 17 <= hour < 21: return 'Evening'
