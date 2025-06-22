@@ -13,6 +13,17 @@ import re
 # Initialize Streamlit
 st.set_page_config(page_title="Collision Report Generator", layout="centered")
 st.title("🚦 Collision Analysis Report Generator")
+
+st.markdown("**Need help formatting your accident data?**")
+st.markdown("Download our ready-made Excel template to ensure your data is structured correctly before upload.")
+
+with open("collision_template.xlsx", "rb") as f:
+    st.download_button(
+        label="📥 Download Excel Template",
+        data=f,
+        file_name="collision_template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 st.markdown("Upload an Excel file to generate a detailed Word report.")
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
