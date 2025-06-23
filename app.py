@@ -195,6 +195,17 @@ if uploaded_file:
     else:
         color = '#0000ff'
     marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
+    smap.add_marker(marker)
+    acc_type = str(row['Classification Of Accident']).strip().lower()
+    if acc_type in ["fatal", "fatal injury", "fatal accident"]:
+        color = '#de2d26'
+    elif acc_type in ["non-fatal", "non-fatal injury", "injury", "serious injury"]:
+        color = '#fc8d59'
+    elif acc_type in ["p.d. only", "pdo", "property damage only"]:
+        color = '#99d8c9'
+    else:
+        color = '#0000ff'
+    marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
                         smap.add_marker(marker)
 
                     image = smap.render()
