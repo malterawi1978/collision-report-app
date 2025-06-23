@@ -11,3 +11,5 @@ geopandas
 shapely
 contextily
 pillow
+folium 
+selenium
