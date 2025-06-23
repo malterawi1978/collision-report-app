@@ -29,7 +29,7 @@ st.markdown("Download our ready-made Excel template to ensure your data is struc
 
 with open("collision_template.xlsx", "rb") as f:
     st.download_button(
-        label="📥 Download Excel Template",
+        label="📅 Download Excel Template",
         data=f,
         file_name="collision_template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -70,7 +70,6 @@ if uploaded_file:
             plt.close()
             img_stream.seek(0)
 
-            # GPT Description
             prompt = (
                 f"You are a road safety analyst. Write a short professional summary "
                 f"of this accident chart titled '{title}'.\n\n"
@@ -87,7 +86,6 @@ if uploaded_file:
             except Exception as e:
                 summary = f"[GPT Error: {e}]"
 
-            # Add to Word
             doc.add_heading(f"Section {section_count}: {title}", level=1)
             doc.add_picture(img_stream, width=Inches(5.5))
             caption = doc.add_paragraph(f"Figure {section_count}: {title}")
@@ -99,7 +97,6 @@ if uploaded_file:
             doc.add_page_break()
             section_count += 1
 
-        # Add charts
         if 'Classification Of Accident' in df.columns:
             add_section("Accident Severity Distribution", df['Classification Of Accident'].value_counts(), chart_type="pie")
 
@@ -179,24 +176,25 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        # Map section with legend and light overlay
+        # Map section with improved accident type matching and legend
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
-                map_df = map_df[
-                    (map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))
-                ]
+                map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
 
                 if not map_df.empty:
-                    color_dict = {
-                        "Fatal": '#ff0000',
-                        "Injury": '#ffa500',
-                        "Property Damage Only": '#00ffff'
-                    }
-
                     smap = StaticMap(800, 600)
+
                     for _, row in map_df.iterrows():
-                        color = color_dict.get(row['Classification Of Accident'], '#0000ff')
+                        acc_type = str(row['Classification Of Accident']).lower()
+                        if "fatal" in acc_type:
+                            color = '#ff0000'
+                        elif "injury" in acc_type:
+                            color = '#ffa500'
+                        elif "property" in acc_type or "pdo" in acc_type:
+                            color = '#00ffff'
+                        else:
+                            color = '#0000ff'
                         marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
                         smap.add_marker(marker)
 
@@ -210,7 +208,12 @@ if uploaded_file:
                     draw.rectangle([legend_x - 10, legend_y - 10, legend_x + 160, legend_y + 70], fill="white", outline="gray")
                     draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
                     y_offset = 15
-                    for label, color in color_dict.items():
+                    legend_items = {
+                        "Fatal": '#ff0000',
+                        "Injury": '#ffa500',
+                        "Property Damage Only": '#00ffff'
+                    }
+                    for label, color in legend_items.items():
                         draw.ellipse([legend_x, legend_y + y_offset, legend_x + 10, legend_y + y_offset + 10], fill=color)
                         draw.text((legend_x + 15, legend_y + y_offset - 2), label, fill="black", font=font)
                         y_offset += 18
@@ -230,7 +233,6 @@ if uploaded_file:
         except Exception as e:
             st.warning(f"Could not generate static map: {e}")
 
-        # Final placeholder
         doc.add_heading(f"Section {section_count}: Collision Type Diagrams", level=1)
         doc.add_paragraph("[Custom collision type diagrams will be rendered based on type and geometry data in future versions.]")
         doc.add_page_break()
