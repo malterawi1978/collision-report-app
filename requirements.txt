@@ -13,3 +13,4 @@ contextily
 pillow
 folium 
 selenium
+staticmap
