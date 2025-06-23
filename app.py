@@ -185,16 +185,16 @@ if uploaded_file:
                     smap = StaticMap(800, 600)
 
                     for _, row in map_df.iterrows():
-                        acc_type = str(row['Classification Of Accident']).lower()
-                        if "fatal" in acc_type:
-                            color = '#de2d26'
-                        elif "non-fatal" in acc_type or "injury" in acc_type:
-                            color = '#fc8d59'
-                        elif "pdo" in acc_type or "damage" in acc_type:
-                            color = '#99d8c9'
-                        else:
-                            color = '#0000ff'
-                        marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
+    acc_type = str(row['Classification Of Accident']).strip().lower()
+    if acc_type in ["fatal", "fatal injury", "fatal accident"]:
+        color = '#de2d26'
+    elif acc_type in ["non-fatal", "non-fatal injury", "injury", "serious injury"]:
+        color = '#fc8d59'
+    elif acc_type in ["p.d. only", "pdo", "property damage only"]:
+        color = '#99d8c9'
+    else:
+        color = '#0000ff'
+    marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10), color, 10)
                         smap.add_marker(marker)
 
                     image = smap.render()
