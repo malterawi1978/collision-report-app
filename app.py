@@ -1,5 +1,8 @@
 import os
 import io
+import shapely
+import geopandas
+import contextily
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -10,6 +13,7 @@ from openai import OpenAI
 from datetime import datetime
 import re
 from PIL import Image
+
 
 st.set_page_config(
     page_title="Collisio – Automated Collision Report Generator",
