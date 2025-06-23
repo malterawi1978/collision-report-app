@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 logo = Image.open("Collisio_Logo.png")
-st.image(logo, width=100)
+st.image(logo, width=200)
 
 st.title("🤖 Collisio")
 st.markdown("### Automated Collision Report Generator")
@@ -195,6 +195,7 @@ if uploaded_file:
     else:
         color = '#0000ff'
     marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
+    smap.add_marker(marker)
     smap.add_marker(marker)
     acc_type = str(row['Classification Of Accident']).strip().lower()
     if acc_type in ["fatal", "fatal injury", "fatal accident"]:
