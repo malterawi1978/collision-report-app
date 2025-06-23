@@ -194,7 +194,7 @@ if uploaded_file:
         color = '#99d8c9'
     else:
         color = '#0000ff'
-    marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10), color, 10)
+    marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
                         smap.add_marker(marker)
 
                     image = smap.render()
