@@ -183,36 +183,22 @@ if uploaded_file:
 
                 if not map_df.empty:
                     smap = StaticMap(800, 600)
-
                     for _, row in map_df.iterrows():
-    acc_type = str(row['Classification Of Accident']).strip().lower()
-    if acc_type in ["fatal", "fatal injury", "fatal accident"]:
-        color = '#de2d26'
-    elif acc_type in ["non-fatal", "non-fatal injury", "injury", "serious injury"]:
-        color = '#fc8d59'
-    elif acc_type in ["p.d. only", "pdo", "property damage only"]:
-        color = '#99d8c9'
-    else:
-        color = '#0000ff'
-    marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
-    smap.add_marker(marker)
-    smap.add_marker(marker)
-    acc_type = str(row['Classification Of Accident']).strip().lower()
-    if acc_type in ["fatal", "fatal injury", "fatal accident"]:
-        color = '#de2d26'
-    elif acc_type in ["non-fatal", "non-fatal injury", "injury", "serious injury"]:
-        color = '#fc8d59'
-    elif acc_type in ["p.d. only", "pdo", "property damage only"]:
-        color = '#99d8c9'
-    else:
-        color = '#0000ff'
-    marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
+                        acc_type = str(row['Classification Of Accident']).strip().lower()
+                        if acc_type in ["fatal", "fatal injury", "fatal accident"]:
+                            color = '#de2d26'
+                        elif acc_type in ["non-fatal", "non-fatal injury", "injury", "serious injury"]:
+                            color = '#fc8d59'
+                        elif acc_type in ["p.d. only", "pdo", "property damage only"]:
+                            color = '#99d8c9'
+                        else:
+                            color = '#0000ff'
+                        marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
                         smap.add_marker(marker)
 
                     image = smap.render()
                     overlay = Image.new('RGBA', image.size, (255, 255, 255, 40))
                     image = Image.alpha_composite(image.convert("RGBA"), overlay)
-
                     draw = ImageDraw.Draw(image)
                     font = ImageFont.load_default()
                     legend_x, legend_y = 20, image.size[1] - 100
@@ -220,7 +206,7 @@ if uploaded_file:
                     draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
                     y_offset = 15
                     legend_items = {
-                        "Fatal": '#de2d26',
+                        "Fatal Injury": '#de2d26',
                         "Non-Fatal Injury": '#fc8d59',
                         "P.D. Only": '#99d8c9'
                     }
