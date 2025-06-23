@@ -1,8 +1,5 @@
 import os
 import io
-import shapely
-import geopandas
-import contextily
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,6 +10,7 @@ from openai import OpenAI
 from datetime import datetime
 import re
 from PIL import Image
+from staticmap import StaticMap, CircleMarker
 
 st.set_page_config(
     page_title="Collisio – Automated Collision Report Generator",
@@ -180,71 +178,33 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        # New High-Quality Folium Map with Legend (Saved as Image)
+        # New Map Section Using staticmap (no selenium required)
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
-                import folium
-                from folium.plugins import MarkerCluster
-                from selenium import webdriver
-                from selenium.webdriver.chrome.options import Options
-                import time
-
                 map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
                 map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
 
                 if not map_df.empty:
                     color_dict = {
-                        "Fatal": "red",
-                        "Injury": "orange",
-                        "Property Damage Only": "cyan"
+                        "Fatal": '#ff0000',
+                        "Injury": '#ffa500',
+                        "Property Damage Only": '#00ffff'
                     }
 
-                    m = folium.Map(location=[map_df['Latitude'].mean(), map_df['Longitude'].mean()],
-                                   zoom_start=13, tiles="OpenStreetMap")
-                    marker_cluster = MarkerCluster().add_to(m)
+                    smap = StaticMap(800, 600)
 
                     for _, row in map_df.iterrows():
-                        acc_type = row['Classification Of Accident']
-                        color = color_dict.get(acc_type, "blue")
-                        folium.CircleMarker(
-                            location=[row['Latitude'], row['Longitude']],
-                            radius=5,
-                            popup=str(acc_type),
-                            color=color,
-                            fill=True,
-                            fill_color=color,
-                            fill_opacity=0.8
-                        ).add_to(marker_cluster)
+                        color = color_dict.get(row['Classification Of Accident'], '#0000ff')
+                        marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
+                        smap.add_marker(marker)
 
-                    legend_html = """
-                    <div style='position: fixed; bottom: 50px; left: 50px; width: 150px; height: 110px;
-                                border:2px solid grey; z-index:9999; font-size:14px;
-                                background-color:white; padding: 10px;'>
-                        <b>Accident Type</b><br>
-                        <i style="color:red;">●</i> Fatal<br>
-                        <i style="color:orange;">●</i> Injury<br>
-                        <i style="color:cyan;">●</i> PDO
-                    </div>
-                    """
-                    m.get_root().html.add_child(folium.Element(legend_html))
-                    m.save("folium_map.html")
-
-                    options = Options()
-                    options.add_argument('--headless')
-                    options.add_argument('--no-sandbox')
-                    options.add_argument('--disable-dev-shm-usage')
-                    driver = webdriver.Chrome(options=options)
-                    driver.set_window_size(1200, 800)
-                    driver.get("file://" + os.path.abspath("folium_map.html"))
-                    time.sleep(3)
-
-                    map_path = "folium_map.png"
-                    driver.save_screenshot(map_path)
-                    driver.quit()
+                    image = smap.render()
+                    map_path = 'static_map.png'
+                    image.save(map_path)
 
                     doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
                     doc.add_picture(map_path, width=Inches(5.5))
-                    caption = doc.add_paragraph(f"Figure {section_count}: High-quality map showing accident types with legend.")
+                    caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations colored by type.")
                     caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                     caption.runs[0].italic = True
                     doc.add_page_break()
@@ -252,7 +212,7 @@ if uploaded_file:
                 else:
                     st.warning("Latitude/Longitude data is present but empty or out of bounds.")
         except Exception as e:
-            st.warning(f"Could not generate folium map: {e}")
+            st.warning(f"Could not generate static map: {e}")
 
         doc.add_heading(f"Section {section_count}: Collision Type Diagrams", level=1)
         doc.add_paragraph("[Custom collision type diagrams will be rendered based on type and geometry data in future versions.]")
