@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 logo = Image.open("Collisio_Logo.png")
-st.image(logo, width=200)
+st.image(logo, width=100)
 
 st.title("🤖 Collisio")
 st.markdown("### Automated Collision Report Generator")
@@ -52,7 +52,7 @@ if uploaded_file:
         section_count = 1
 
         def add_section(title, chart_data, chart_type="bar"):
-            nonlocal section_count
+            global section_count
             if len(chart_data) < 2:
                 return
 
