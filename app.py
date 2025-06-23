@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 logo = Image.open("Collisio_Logo.png")
-st.image(logo, width=200)
+st.image(logo, width=100)
 
 st.title("🤖 Collisio")
 st.markdown("### Automated Collision Report Generator")
@@ -178,52 +178,47 @@ if uploaded_file:
 
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
-                map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
-                map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
+    type_counts = df['Classification Of Accident'].value_counts()
+    add_section("Accident Type Distribution (Map Data Only)", type_counts, chart_type="pie")
 
-                if not map_df.empty:
-                    smap = StaticMap(800, 600)
-                    for _, row in map_df.iterrows():
-                        acc_type = str(row['Classification Of Accident']).strip().lower()
-                        if acc_type in ["fatal", "fatal injury", "fatal accident"]:
-                            color = '#de2d26'
-                        elif acc_type in ["non-fatal", "non-fatal injury", "injury", "serious injury"]:
-                            color = '#fc8d59'
-                        elif acc_type in ["p.d. only", "pdo", "property damage only"]:
-                            color = '#99d8c9'
-                        else:
-                            color = '#0000ff'
-                        marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
-                        smap.add_marker(marker)
+    map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
+    map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
 
-                    image = smap.render()
-                    overlay = Image.new('RGBA', image.size, (255, 255, 255, 40))
-                    image = Image.alpha_composite(image.convert("RGBA"), overlay)
-                    draw = ImageDraw.Draw(image)
-                    font = ImageFont.load_default()
-                    legend_x, legend_y = 20, image.size[1] - 100
-                    draw.rectangle([legend_x - 10, legend_y - 10, legend_x + 180, legend_y + 70], fill="white", outline="gray")
-                    draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
-                    y_offset = 15
-                    legend_items = {
-                        "Fatal Injury": '#de2d26',
-                        "Non-Fatal Injury": '#fc8d59',
-                        "P.D. Only": '#99d8c9'
-                    }
-                    for label, color in legend_items.items():
-                        draw.ellipse([legend_x, legend_y + y_offset, legend_x + 10, legend_y + y_offset + 10], fill=color)
-                        draw.text((legend_x + 15, legend_y + y_offset - 2), label, fill="black", font=font)
-                        y_offset += 18
+    if not map_df.empty:
+        smap = StaticMap(800, 600)
+        for _, row in map_df.iterrows():
+    acc_type_label = str(row['Classification Of Accident']).strip()
+    color = legend_items.get(acc_type_label, '#0000ff')
+    marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
+    smap.add_marker(marker)
 
-                    map_path = "static_map.png"
-                    image.convert("RGB").save(map_path)
+        image = smap.render()
+        overlay = Image.new('RGBA', image.size, (255, 255, 255, 40))
+        image = Image.alpha_composite(image.convert("RGBA"), overlay)
 
-                    doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
-                    doc.add_picture(map_path, width=Inches(5.5))
-                    caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations colored by type with legend.")
-                    caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                    caption.runs[0].italic = True
-                    doc.add_page_break()
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.load_default()
+        legend_x, legend_y = 20, image.size[1] - 100
+        draw.rectangle([legend_x - 10, legend_y - 10, legend_x + 160, legend_y + 70], fill="white", outline="gray")
+        draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
+        y_offset = 15
+        base_colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+legend_items = {label: base_colors[i % len(base_colors)] for i, label in enumerate(type_counts.index.tolist())}
+        for label, color in legend_items.items():
+    draw.ellipse([legend_x, legend_y + y_offset, legend_x + 10, legend_y + y_offset + 10], fill=color)
+    draw.text((legend_x + 15, legend_y + y_offset - 2), label, fill="black", font=font)
+    y_offset += 18
+
+        map_path = "static_map.png"
+        image.convert("RGB").save(map_path)
+
+        doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
+        doc.add_picture(map_path, width=Inches(5.5))
+        caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations colored by type with legend.")
+        caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        caption.runs[0].italic = True
+        doc.add_page_break()
+        section_count += 1
                     section_count += 1
                 else:
                     st.warning("Latitude/Longitude data is present but empty or out of bounds.")
