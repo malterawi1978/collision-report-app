@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 logo = Image.open("Collisio_Logo.png")
-st.image(logo, width=200)
+st.image(logo, width=120)
 
 st.title("🤖 Collisio")
 st.markdown("### Automated Collision Report Generator")
@@ -179,7 +179,7 @@ if uploaded_file:
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 type_counts = df['Classification Of Accident'].value_counts()
-                base_colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+                base_colors = ['#0099ff', '#ff7f0e', '#2ca02c']
                 legend_items = {label: base_colors[i % len(base_colors)] for i, label in enumerate(type_counts.index.tolist())}
 
                 map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
@@ -195,7 +195,7 @@ if uploaded_file:
                         smap.add_marker(marker)
 
                     image = smap.render()
-                    overlay = Image.new('RGBA', image.size, (255, 255, 255, 40))
+                    overlay = Image.new('RGBA', image.size, (255, 255, 255, 65))
                     image = Image.alpha_composite(image.convert("RGBA"), overlay)
 
                     draw = ImageDraw.Draw(image)
