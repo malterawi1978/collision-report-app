@@ -22,7 +22,7 @@ st.set_page_config(
 )
 
 logo = Image.open("Collisio_Logo.png")
-st.image(logo, width=200)
+st.image(logo, width=100)
 
 st.title("🤖 Collisio")
 st.markdown("### Automated Collision Report Generator")
@@ -181,15 +181,20 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        # New Section: Real Map from Latitude and Longitude
+        # Enhanced Section: Real Map from Latitude and Longitude with Accident Type Legend
         try:
-            if 'Latitude' in df.columns and 'Longitude' in df.columns:
+            if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 from shapely.geometry import Point
                 import geopandas as gpd
                 import contextily as ctx
+                import matplotlib.cm as cm
+                import matplotlib.colors as mcolors
 
-                geo_df = df[['Latitude', 'Longitude']].dropna()
-                geo_df = geo_df[(geo_df['Latitude'].between(-90, 90)) & (geo_df['Longitude'].between(-180, 180))]
+                geo_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
+                geo_df = geo_df[
+                    (geo_df['Latitude'].between(-90, 90)) &
+                    (geo_df['Longitude'].between(-180, 180))
+                    ]
 
                 if not geo_df.empty:
                     gdf = gpd.GeoDataFrame(
@@ -198,20 +203,31 @@ if uploaded_file:
                         crs="EPSG:4326"
                     ).to_crs(epsg=3857)
 
-                    fig, ax = plt.subplots(figsize=(8, 6))
-                    gdf.plot(ax=ax, markersize=10, alpha=0.6, color='red')
+                    fig, ax = plt.subplots(figsize=(10, 8), dpi=300)
+
+                    accident_types = gdf['Classification Of Accident'].unique()
+                    cmap = plt.get_cmap('Set1')
+                    colors = dict(zip(accident_types, cmap.colors[:len(accident_types)]))
+
+                    for acc_type, color in colors.items():
+                        gdf[gdf['Classification Of Accident'] == acc_type].plot(
+                            ax=ax, label=acc_type, color=color, markersize=10, alpha=0.7
+                        )
+
                     ctx.add_basemap(ax, source=ctx.providers.OpenStreetMap.Mapnik)
                     ax.set_axis_off()
+                    ax.legend(title="Accident Type", loc="lower right", fontsize=8, title_fontsize=9)
                     plt.tight_layout()
 
                     map_stream = io.BytesIO()
-                    plt.savefig(map_stream, format='png')
+                    plt.savefig(map_stream, format='png', dpi=300)
                     plt.close()
                     map_stream.seek(0)
 
                     doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
                     doc.add_picture(map_stream, width=Inches(5.5))
-                    caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations based on GPS coordinates.")
+                    caption = doc.add_paragraph(
+                        f"Figure {section_count}: Map showing accident locations colored by accident type.")
                     caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                     caption.runs[0].italic = True
                     doc.add_page_break()
