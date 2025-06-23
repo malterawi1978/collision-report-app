@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 logo = Image.open("Collisio_Logo.png")
-st.image(logo, width=120)
+st.image(logo, width=100)
 
 st.title("🤖 Collisio")
 st.markdown("### Automated Collision Report Generator")
@@ -195,7 +195,7 @@ if uploaded_file:
                         smap.add_marker(marker)
 
                     image = smap.render()
-                    overlay = Image.new('RGBA', image.size, (255, 255, 255, 65))
+                    overlay = Image.new('RGBA', image.size, (125, 125, 125, 80))
                     image = Image.alpha_composite(image.convert("RGBA"), overlay)
 
                     draw = ImageDraw.Draw(image)
