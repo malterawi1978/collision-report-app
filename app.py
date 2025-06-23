@@ -8,8 +8,7 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from openai import OpenAI
 from datetime import datetime
-import re
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from staticmap import StaticMap, CircleMarker
 
 st.set_page_config(
@@ -30,7 +29,7 @@ st.markdown("Download our ready-made Excel template to ensure your data is struc
 
 with open("collision_template.xlsx", "rb") as f:
     st.download_button(
-        label="📅 Download Excel Template",
+        label="📥 Download Excel Template",
         data=f,
         file_name="collision_template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -52,7 +51,7 @@ if uploaded_file:
 
         section_count = 1
 
-        def add_section(title, chart_data, chart_type="bar", prompt_level="basic"):
+        def add_section(title, chart_data, chart_type="bar"):
             global section_count
             if len(chart_data) < 2:
                 return
@@ -62,7 +61,7 @@ if uploaded_file:
             if chart_type == "pie" and len(chart_data) <= 6:
                 plt.pie(chart_data, labels=chart_data.index, autopct='%1.1f%%')
             else:
-                ax = chart_data.plot(kind="bar", stacked=True if isinstance(chart_data, pd.DataFrame) else False)
+                ax = chart_data.plot(kind="bar", stacked=isinstance(chart_data, pd.DataFrame))
                 plt.xticks(rotation=45, ha='right')
                 ax.set_ylabel("Number of Accidents")
             plt.title(title)
@@ -71,13 +70,13 @@ if uploaded_file:
             plt.close()
             img_stream.seek(0)
 
+            # GPT Description
             prompt = (
                 f"You are a road safety analyst. Write a short professional summary "
                 f"of this accident chart titled '{title}'.\n\n"
                 f"Data: {chart_data.head(10).to_string()}\n\n"
                 f"Highlight the most common types and any interesting patterns."
             )
-
             try:
                 response = client.chat.completions.create(
                     model="gpt-4o",
@@ -88,6 +87,7 @@ if uploaded_file:
             except Exception as e:
                 summary = f"[GPT Error: {e}]"
 
+            # Add to Word
             doc.add_heading(f"Section {section_count}: {title}", level=1)
             doc.add_picture(img_stream, width=Inches(5.5))
             caption = doc.add_paragraph(f"Figure {section_count}: {title}")
@@ -99,6 +99,7 @@ if uploaded_file:
             doc.add_page_break()
             section_count += 1
 
+        # Add charts
         if 'Classification Of Accident' in df.columns:
             add_section("Accident Severity Distribution", df['Classification Of Accident'].value_counts(), chart_type="pie")
 
@@ -178,11 +179,13 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        # New Map Section Using staticmap (no selenium required)
+        # Map section with legend and light overlay
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
-                map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
+                map_df = map_df[
+                    (map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))
+                ]
 
                 if not map_df.empty:
                     color_dict = {
@@ -192,19 +195,32 @@ if uploaded_file:
                     }
 
                     smap = StaticMap(800, 600)
-
                     for _, row in map_df.iterrows():
                         color = color_dict.get(row['Classification Of Accident'], '#0000ff')
                         marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
                         smap.add_marker(marker)
 
                     image = smap.render()
-                    map_path = 'static_map.png'
-                    image.save(map_path)
+                    overlay = Image.new('RGBA', image.size, (255, 255, 255, 40))
+                    image = Image.alpha_composite(image.convert("RGBA"), overlay)
+
+                    draw = ImageDraw.Draw(image)
+                    font = ImageFont.load_default()
+                    legend_x, legend_y = 20, image.size[1] - 100
+                    draw.rectangle([legend_x - 10, legend_y - 10, legend_x + 160, legend_y + 70], fill="white", outline="gray")
+                    draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
+                    y_offset = 15
+                    for label, color in color_dict.items():
+                        draw.ellipse([legend_x, legend_y + y_offset, legend_x + 10, legend_y + y_offset + 10], fill=color)
+                        draw.text((legend_x + 15, legend_y + y_offset - 2), label, fill="black", font=font)
+                        y_offset += 18
+
+                    map_path = "static_map.png"
+                    image.convert("RGB").save(map_path)
 
                     doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
                     doc.add_picture(map_path, width=Inches(5.5))
-                    caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations colored by type.")
+                    caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations colored by type with legend.")
                     caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                     caption.runs[0].italic = True
                     doc.add_page_break()
@@ -214,6 +230,7 @@ if uploaded_file:
         except Exception as e:
             st.warning(f"Could not generate static map: {e}")
 
+        # Final placeholder
         doc.add_heading(f"Section {section_count}: Collision Type Diagrams", level=1)
         doc.add_paragraph("[Custom collision type diagrams will be rendered based on type and geometry data in future versions.]")
         doc.add_page_break()
@@ -222,6 +239,6 @@ if uploaded_file:
         doc.save(output_path)
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
-            st.download_button("📅 Download Report", f, file_name="collision_report.docx")
+            st.download_button("📥 Download Report", f, file_name="collision_report.docx")
 else:
     st.info("Please upload an Excel file to begin.")
