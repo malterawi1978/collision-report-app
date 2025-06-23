@@ -52,7 +52,7 @@ if uploaded_file:
         section_count = 1
 
         def add_section(title, chart_data, chart_type="bar"):
-            global section_count
+            nonlocal section_count
             if len(chart_data) < 2:
                 return
 
@@ -178,55 +178,50 @@ if uploaded_file:
 
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
-                type_counts = df['Classification Of Accident'].value_counts()
-                base_colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
-                legend_items = {label: base_colors[i % len(base_colors)] for i, label in
-                                enumerate(type_counts.index.tolist())}
+    type_counts = df['Classification Of Accident'].value_counts()
+    base_colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    legend_items = {label: base_colors[i % len(base_colors)] for i, label in enumerate(type_counts.index.tolist())}
 
-                map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
-                map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
+    map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
+    map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
 
-                if not map_df.empty:
-                    smap = StaticMap(800, 600)
+    if not map_df.empty:
+        smap = StaticMap(800, 600)
 
-                    for _, row in map_df.iterrows():
-                        acc_type_label = str(row['Classification Of Accident']).strip()
-                        color = legend_items.get(acc_type_label, '#0000ff')
-                        marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
-                        smap.add_marker(marker)
+        for _, row in map_df.iterrows():
+            acc_type_label = str(row['Classification Of Accident']).strip()
+            color = legend_items.get(acc_type_label, '#0000ff')
+            marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
+            smap.add_marker(marker)
 
-                    image = smap.render()
-                    overlay = Image.new('RGBA', image.size, (255, 255, 255, 40))
-                    image = Image.alpha_composite(image.convert("RGBA"), overlay)
+        image = smap.render()
+        overlay = Image.new('RGBA', image.size, (255, 255, 255, 40))
+        image = Image.alpha_composite(image.convert("RGBA"), overlay)
 
-                    draw = ImageDraw.Draw(image)
-                    font = ImageFont.load_default()
-                    legend_x, legend_y = 20, image.size[1] - 100
-                    draw.rectangle(
-                        [legend_x - 10, legend_y - 10, legend_x + 200, legend_y + 20 + 18 * len(legend_items)],
-                        fill="white", outline="gray")
-                    draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
-                    y_offset = 15
-                    for label, color in legend_items.items():
-                        draw.ellipse([legend_x, legend_y + y_offset, legend_x + 10, legend_y + y_offset + 10],
-                                     fill=color)
-                        draw.text((legend_x + 15, legend_y + y_offset - 2), label, fill="black", font=font)
-                        y_offset += 18
+        draw = ImageDraw.Draw(image)
+        font = ImageFont.load_default()
+        legend_x, legend_y = 20, image.size[1] - 100
+        draw.rectangle([legend_x - 10, legend_y - 10, legend_x + 200, legend_y + 20 + 18 * len(legend_items)], fill="white", outline="gray")
+        draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
+        y_offset = 15
+        for label, color in legend_items.items():
+            draw.ellipse([legend_x, legend_y + y_offset, legend_x + 10, legend_y + y_offset + 10], fill=color)
+            draw.text((legend_x + 15, legend_y + y_offset - 2), label, fill="black", font=font)
+            y_offset += 18
 
-                    map_path = "static_map.png"
-                    image.convert("RGB").save(map_path)
+        map_path = "static_map.png"
+        image.convert("RGB").save(map_path)
 
-                    doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
-                    doc.add_picture(map_path, width=Inches(5.5))
-                    caption = doc.add_paragraph(
-                        f"Figure {section_count}: Map showing accident locations colored by type with legend.")
-                    caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                    caption.runs[0].italic = True
-                    doc.add_page_break()
-                    section_count += 1
-                else:
-                    st.warning("Latitude/Longitude data is present but empty or out of bounds.")
-        #section_count += 1
+        doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
+        doc.add_picture(map_path, width=Inches(5.5))
+        caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations colored by type with legend.")
+        caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        caption.runs[0].italic = True
+        doc.add_page_break()
+        section_count += 1
+    else:
+        st.warning("Latitude/Longitude data is present but empty or out of bounds.")
+        section_count += 1
                     section_count += 1
                 else:
                     st.warning("Latitude/Longitude data is present but empty or out of bounds.")
