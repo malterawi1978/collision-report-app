@@ -226,7 +226,7 @@ if uploaded_file:
                     section_count += 1
                 else:
                     st.warning("Latitude/Longitude data is present but empty or out of bounds.")
-        section_count += 1
+        #section_count += 1
                     section_count += 1
                 else:
                     st.warning("Latitude/Longitude data is present but empty or out of bounds.")
