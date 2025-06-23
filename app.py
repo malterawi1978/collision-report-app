@@ -14,7 +14,6 @@ from datetime import datetime
 import re
 from PIL import Image
 
-
 st.set_page_config(
     page_title="Collisio – Automated Collision Report Generator",
     page_icon="🚦",
@@ -33,7 +32,7 @@ st.markdown("Download our ready-made Excel template to ensure your data is struc
 
 with open("collision_template.xlsx", "rb") as f:
     st.download_button(
-        label="📥 Download Excel Template",
+        label="📅 Download Excel Template",
         data=f,
         file_name="collision_template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -56,7 +55,7 @@ if uploaded_file:
         section_count = 1
 
         def add_section(title, chart_data, chart_type="bar", prompt_level="basic"):
-            global section_count
+            nonlocal section_count
             if len(chart_data) < 2:
                 return
 
@@ -181,53 +180,71 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        # Enhanced Section: Real Map from Latitude and Longitude with Accident Type Legend
+        # New High-Quality Folium Map with Legend (Saved as Image)
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
-                from shapely.geometry import Point
-                import geopandas as gpd
-                import contextily as ctx
-                import matplotlib.cm as cm
-                import matplotlib.colors as mcolors
+                import folium
+                from folium.plugins import MarkerCluster
+                from selenium import webdriver
+                from selenium.webdriver.chrome.options import Options
+                import time
 
-                geo_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
-                geo_df = geo_df[
-                    (geo_df['Latitude'].between(-90, 90)) &
-                    (geo_df['Longitude'].between(-180, 180))
-                    ]
+                map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
+                map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
 
-                if not geo_df.empty:
-                    gdf = gpd.GeoDataFrame(
-                        geo_df,
-                        geometry=[Point(xy) for xy in zip(geo_df['Longitude'], geo_df['Latitude'])],
-                        crs="EPSG:4326"
-                    ).to_crs(epsg=3857)
+                if not map_df.empty:
+                    color_dict = {
+                        "Fatal": "red",
+                        "Injury": "orange",
+                        "Property Damage Only": "cyan"
+                    }
 
-                    fig, ax = plt.subplots(figsize=(10, 8), dpi=300)
+                    m = folium.Map(location=[map_df['Latitude'].mean(), map_df['Longitude'].mean()],
+                                   zoom_start=13, tiles="OpenStreetMap")
+                    marker_cluster = MarkerCluster().add_to(m)
 
-                    accident_types = gdf['Classification Of Accident'].unique()
-                    cmap = plt.get_cmap('Set1')
-                    colors = dict(zip(accident_types, cmap.colors[:len(accident_types)]))
+                    for _, row in map_df.iterrows():
+                        acc_type = row['Classification Of Accident']
+                        color = color_dict.get(acc_type, "blue")
+                        folium.CircleMarker(
+                            location=[row['Latitude'], row['Longitude']],
+                            radius=5,
+                            popup=str(acc_type),
+                            color=color,
+                            fill=True,
+                            fill_color=color,
+                            fill_opacity=0.8
+                        ).add_to(marker_cluster)
 
-                    for acc_type, color in colors.items():
-                        gdf[gdf['Classification Of Accident'] == acc_type].plot(
-                            ax=ax, label=acc_type, color=color, markersize=10, alpha=0.7
-                        )
+                    legend_html = """
+                    <div style='position: fixed; bottom: 50px; left: 50px; width: 150px; height: 110px;
+                                border:2px solid grey; z-index:9999; font-size:14px;
+                                background-color:white; padding: 10px;'>
+                        <b>Accident Type</b><br>
+                        <i style="color:red;">●</i> Fatal<br>
+                        <i style="color:orange;">●</i> Injury<br>
+                        <i style="color:cyan;">●</i> PDO
+                    </div>
+                    """
+                    m.get_root().html.add_child(folium.Element(legend_html))
+                    m.save("folium_map.html")
 
-                    ctx.add_basemap(ax, source=ctx.providers.OpenStreetMap.Mapnik)
-                    ax.set_axis_off()
-                    ax.legend(title="Accident Type", loc="lower right", fontsize=8, title_fontsize=9)
-                    plt.tight_layout()
+                    options = Options()
+                    options.add_argument('--headless')
+                    options.add_argument('--no-sandbox')
+                    options.add_argument('--disable-dev-shm-usage')
+                    driver = webdriver.Chrome(options=options)
+                    driver.set_window_size(1200, 800)
+                    driver.get("file://" + os.path.abspath("folium_map.html"))
+                    time.sleep(3)
 
-                    map_stream = io.BytesIO()
-                    plt.savefig(map_stream, format='png', dpi=300)
-                    plt.close()
-                    map_stream.seek(0)
+                    map_path = "folium_map.png"
+                    driver.save_screenshot(map_path)
+                    driver.quit()
 
                     doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
-                    doc.add_picture(map_stream, width=Inches(5.5))
-                    caption = doc.add_paragraph(
-                        f"Figure {section_count}: Map showing accident locations colored by accident type.")
+                    doc.add_picture(map_path, width=Inches(5.5))
+                    caption = doc.add_paragraph(f"Figure {section_count}: High-quality map showing accident types with legend.")
                     caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                     caption.runs[0].italic = True
                     doc.add_page_break()
@@ -235,7 +252,7 @@ if uploaded_file:
                 else:
                     st.warning("Latitude/Longitude data is present but empty or out of bounds.")
         except Exception as e:
-            st.warning(f"Could not plot the map: {e}")
+            st.warning(f"Could not generate folium map: {e}")
 
         doc.add_heading(f"Section {section_count}: Collision Type Diagrams", level=1)
         doc.add_paragraph("[Custom collision type diagrams will be rendered based on type and geometry data in future versions.]")
@@ -245,6 +262,6 @@ if uploaded_file:
         doc.save(output_path)
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
-            st.download_button("📥 Download Report", f, file_name="collision_report.docx")
+            st.download_button("📅 Download Report", f, file_name="collision_report.docx")
 else:
     st.info("Please upload an Excel file to begin.")
