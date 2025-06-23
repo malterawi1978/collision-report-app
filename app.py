@@ -52,7 +52,7 @@ if uploaded_file:
         section_count = 1
 
         def add_section(title, chart_data, chart_type="bar", prompt_level="basic"):
-            global section_count
+            nonlocal section_count
             if len(chart_data) < 2:
                 return
 
@@ -177,10 +177,45 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
-        doc.add_paragraph("[Map-based XY scatter plot will be implemented here in future versions.]")
-        doc.add_page_break()
-        section_count += 1
+        # New Section: Real Map from Latitude and Longitude
+        try:
+            if 'Latitude' in df.columns and 'Longitude' in df.columns:
+                from shapely.geometry import Point
+                import geopandas as gpd
+                import contextily as ctx
+
+                geo_df = df[['Latitude', 'Longitude']].dropna()
+                geo_df = geo_df[(geo_df['Latitude'].between(-90, 90)) & (geo_df['Longitude'].between(-180, 180))]
+
+                if not geo_df.empty:
+                    gdf = gpd.GeoDataFrame(
+                        geo_df,
+                        geometry=[Point(xy) for xy in zip(geo_df['Longitude'], geo_df['Latitude'])],
+                        crs="EPSG:4326"
+                    ).to_crs(epsg=3857)
+
+                    fig, ax = plt.subplots(figsize=(8, 6))
+                    gdf.plot(ax=ax, markersize=10, alpha=0.6, color='red')
+                    ctx.add_basemap(ax, source=ctx.providers.OpenStreetMap.Mapnik)
+                    ax.set_axis_off()
+                    plt.tight_layout()
+
+                    map_stream = io.BytesIO()
+                    plt.savefig(map_stream, format='png')
+                    plt.close()
+                    map_stream.seek(0)
+
+                    doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
+                    doc.add_picture(map_stream, width=Inches(5.5))
+                    caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations based on GPS coordinates.")
+                    caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                    caption.runs[0].italic = True
+                    doc.add_page_break()
+                    section_count += 1
+                else:
+                    st.warning("Latitude/Longitude data is present but empty or out of bounds.")
+        except Exception as e:
+            st.warning(f"Could not plot the map: {e}")
 
         doc.add_heading(f"Section {section_count}: Collision Type Diagrams", level=1)
         doc.add_paragraph("[Custom collision type diagrams will be rendered based on type and geometry data in future versions.]")
