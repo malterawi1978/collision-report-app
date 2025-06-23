@@ -7,3 +7,7 @@ python-dotenv
 scikit-learn 
 seaborn
 openpyxl
+geopandas
+shapely
+contextily
+pillow
