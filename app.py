@@ -97,7 +97,7 @@ if uploaded_file:
             doc.add_page_break()
             section_count += 1
 
-                if 'Classification Of Accident' in df.columns:
+        if 'Classification Of Accident' in df.columns:
             add_section("Accident Severity Distribution", df['Classification Of Accident'].value_counts(), chart_type="pie")
 
         if 'Classification Of Accident' in df.columns and 'Location' in df.columns:
@@ -176,7 +176,6 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        # Map section with corrected classification color coding
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
@@ -186,13 +185,13 @@ if uploaded_file:
                     smap = StaticMap(800, 600)
 
                     for _, row in map_df.iterrows():
-                        acc_type = str(row['Classification Of Accident']).strip().lower()
+                        acc_type = str(row['Classification Of Accident']).lower()
                         if "fatal" in acc_type:
-                            color = '#de2d26'  # Fatal
-                        elif "non-fatal" in acc_type:
-                            color = '#fc8d59'  # Non-Fatal Injury
-                        elif "p.d." in acc_type or "property" in acc_type:
-                            color = '#99d8c9'  # Property Damage Only
+                            color = '#de2d26'
+                        elif "non-fatal" in acc_type or "injury" in acc_type:
+                            color = '#fc8d59'
+                        elif "pdo" in acc_type or "damage" in acc_type:
+                            color = '#99d8c9'
                         else:
                             color = '#0000ff'
                         marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
@@ -205,7 +204,7 @@ if uploaded_file:
                     draw = ImageDraw.Draw(image)
                     font = ImageFont.load_default()
                     legend_x, legend_y = 20, image.size[1] - 100
-                    draw.rectangle([legend_x - 10, legend_y - 10, legend_x + 190, legend_y + 70], fill="white", outline="gray")
+                    draw.rectangle([legend_x - 10, legend_y - 10, legend_x + 180, legend_y + 70], fill="white", outline="gray")
                     draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
                     y_offset = 15
                     legend_items = {
