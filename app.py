@@ -73,7 +73,7 @@ if uploaded_file:
         section_count = 1
 
         def add_section(title, chart_data, chart_type="bar"):
-            nonlocal section_count
+            global section_count
             if chart_data.empty:
                 return
 
