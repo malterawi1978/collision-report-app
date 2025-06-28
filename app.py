@@ -15,7 +15,7 @@ import contextily as ctx
 from matplotlib.patches import FancyArrow
 
 st.set_page_config(
-    page_title="Collisio – Automated Collision Report Generator",
+    page_title="Collisio – Collision Report Generator",
     page_icon="🚦",
     layout="centered"
 )
@@ -24,7 +24,7 @@ logo = Image.open("Collisio_Logo.png")
 st.image(logo, width=100)
 
 st.title("🤖 Collisio")
-st.markdown("### Automated Collision Report Generator")
+st.markdown("### Collision Report Generator")
 st.markdown("Upload your traffic accident data to generate a smart report with charts and insights powered by AI.")
 
 st.markdown("**Need help formatting your accident data?**")
@@ -32,7 +32,7 @@ st.markdown("Download our ready-made Excel template to ensure your data is struc
 
 with open("collision_template.xlsx", "rb") as f:
     st.download_button(
-        label="🗕️ Download Excel Template",
+        label="Download Excel Template",
         data=f,
         file_name="collision_template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -53,7 +53,7 @@ if uploaded_file:
 
         doc = Document()
         doc.add_heading("Collision Analysis Report", 0)
-        doc.add_paragraph("Prepared automatically by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        doc.add_paragraph("Prepared by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         doc.add_page_break()
 
         section_count = 1
@@ -93,7 +93,7 @@ if uploaded_file:
             except Exception as e:
                 summary = f"[GPT Error: {e}]"
 
-            clean_title = title.replace("**", "")
+            clean_title = title.replace("**", "").replace("###", "").strip().replace("#", "").strip()
             doc.add_heading(f"Section {section_count}: {clean_title}", level=1)
             doc.add_picture(img_stream, width=Inches(5.5))
             caption = doc.add_paragraph(f"Figure {section_count}: {clean_title}")
