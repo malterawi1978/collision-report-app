@@ -43,7 +43,9 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    st.markdown("### 📋 Sections Being Analyzed")
+    # Section tracker
+    section_title = st.empty()
+    section_title.markdown("<small><strong>📋 Sections Being Analyzed</strong></small>", unsafe_allow_html=True)
     section_placeholder = st.empty()
 
     def show_section(title):
@@ -193,10 +195,7 @@ if uploaded_file:
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 df["Classification Of Accident"] = df["Classification Of Accident"].astype(str).str.strip().str.lower()
-                color_list = [
-                    '#FF0000', '#00CC00', '#0000FF', '#FFA500', '#800080',
-                    '#00FFFF', '#FFC0CB', '#FFFF00', '#00CED1', '#FF1493'
-                ]
+                color_list = ['#FF0000', '#00CC00', '#0000FF', '#FFA500', '#800080', '#00FFFF', '#FFC0CB', '#FFFF00', '#00CED1', '#FF1493']
                 unique_types = df["Classification Of Accident"].unique()
                 auto_color_map = {stype: color_list[i % len(color_list)] for i, stype in enumerate(unique_types)}
 
@@ -216,11 +215,8 @@ if uploaded_file:
                 ax.set_ylim(miny - buffer, maxy + buffer)
                 ctx.add_basemap(ax, source=ctx.providers.OpenStreetMap.Mapnik, zoom=17)
 
-                ax.text(0.95, 0.95, 'N', transform=ax.transAxes,
-                        fontsize=20, fontweight='bold', ha='center', va='center', color='black')
-                arrow = FancyArrow(0.95, 0.91, 0, 0.03, transform=ax.transAxes,
-                                   width=0.01, head_width=0.03, head_length=0.02,
-                                   length_includes_head=True, color='black', edgecolor='white')
+                ax.text(0.95, 0.95, 'N', transform=ax.transAxes, fontsize=20, fontweight='bold', ha='center', va='center', color='black')
+                arrow = FancyArrow(0.95, 0.91, 0, 0.03, transform=ax.transAxes, width=0.01, head_width=0.03, head_length=0.02, length_includes_head=True, color='black', edgecolor='white')
                 ax.add_patch(arrow)
 
                 ax.set_title("Accident Locations by Type", fontsize=16)
@@ -240,6 +236,11 @@ if uploaded_file:
 
         output_path = "collision_report.docx"
         doc.save(output_path)
+
+        # Clear section list from UI
+        section_title.empty()
+        section_placeholder.empty()
+
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
             st.download_button("🧾 Download Report", f, file_name="collision_report.docx")
