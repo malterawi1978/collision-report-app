@@ -45,6 +45,10 @@ uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 if uploaded_file:
     with st.spinner("Generating report. Please wait..."):
         df = pd.read_excel(uploaded_file)
+        df.dropna(how='all', inplace=True)  # Drop rows where all values are NaN
+        df = df.dropna(subset=['Classification Of Accident'])  # Ensure key field exists
+        df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+        df = df[~df.isin(['', ' ', None]).any(axis=1)]  # Remove rows with empty string values
         st.success("File read successfully.")
 
         doc = Document()
@@ -234,13 +238,14 @@ if uploaded_file:
         output_path = "collision_report.docx"
         doc.save(output_path)
         st.success("✅ Report is ready!")
-
         with open(output_path, "rb") as f:
             st.download_button("📅 Download Report", f, file_name="collision_report.docx")
 
         with open(map_path, "rb") as img_file:
             st.markdown("**🗺️ Download Accident Map**")
             st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
-
+                st.markdown("**🗺️ Download Accident Map**")
+                with open(map_path, "rb") as img_file:
+                    st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
 else:
     st.info("Please upload an Excel file to begin.")
