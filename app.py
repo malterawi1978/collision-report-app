@@ -49,13 +49,14 @@ if uploaded_file:
 
     section_title.markdown("<small><strong>📋 Sections Being Analyzed</strong></small>", unsafe_allow_html=True)
 
-    processed_sections = []
-    total_sections = 16  # Update based on actual number of sections processed
+    total_sections = 16
+    processed_count = 0
 
     def show_section(title):
-        processed_sections.append(f"- {title}")
-        section_placeholder.markdown("\n".join(processed_sections))
-        progress_bar.progress(min(len(processed_sections) / total_sections, 1.0))
+        global processed_count
+        processed_count += 1
+        section_placeholder.markdown(f"<small>📊 Analyzing: <strong>{title}</strong></small>", unsafe_allow_html=True)
+        progress_bar.progress(min(processed_count / total_sections, 1.0))
 
     with st.spinner("Generating report. Please wait..."):
         df = pd.read_excel(uploaded_file)
@@ -73,7 +74,7 @@ if uploaded_file:
         section_count = 1
 
         def add_section(title, chart_data, chart_type="bar"):
-            global section_count
+            nonlocal section_count
             if chart_data.empty:
                 return
 
