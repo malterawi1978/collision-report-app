@@ -43,10 +43,8 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    progress = st.progress(0, text="Starting report generation...")
+            progress = st.progress(0, text="Starting report generation...")
         left_col, right_col = st.columns([4, 1])
-        with left_col:
-            pass
         with right_col:
             st.markdown("### 📋 Sections")
             section_placeholder = st.empty()
