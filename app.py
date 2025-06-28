@@ -93,9 +93,10 @@ if uploaded_file:
             except Exception as e:
                 summary = f"[GPT Error: {e}]"
 
-            doc.add_heading(f"Section {section_count}: {title}", level=1)
+            clean_title = title.replace("**", "")
+            doc.add_heading(f"Section {section_count}: {clean_title}", level=1)
             doc.add_picture(img_stream, width=Inches(5.5))
-            caption = doc.add_paragraph(f"Figure {section_count}: {title}")
+            caption = doc.add_paragraph(f"Figure {section_count}: {clean_title}")
             caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             caption.runs[0].italic = True
             para = doc.add_paragraph(summary)
@@ -244,5 +245,6 @@ if uploaded_file:
         with open(map_path, "rb") as img_file:
             st.markdown("**🗺️ Download Accident Map**")
             st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
+
 else:
     st.info("Please upload an Excel file to begin.")
