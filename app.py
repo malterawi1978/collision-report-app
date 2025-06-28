@@ -179,6 +179,7 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
+        # NEW: Generate and offer external map file
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 df["Classification Of Accident"] = df["Classification Of Accident"].astype(str).str.strip().str.lower()
@@ -217,17 +218,13 @@ if uploaded_file:
                 ax.legend(title="Accident Type", fontsize=10, title_fontsize=11, loc="lower left")
 
                 plt.tight_layout()
-                map_path = "survey_map_auto_colored.png"
+                map_path = "accident_map.png"
                 plt.savefig(map_path, dpi=600)
                 plt.close()
 
-                doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
-                doc.add_picture(map_path, width=Inches(5.5))
-                caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations by type with legend.")
-                caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                caption.runs[0].italic = True
-                doc.add_page_break()
-                section_count += 1
+                st.markdown("### 🗺️ Download Accident Map")
+                with open(map_path, "rb") as img_file:
+                    st.download_button("📥 Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
         except Exception as e:
             st.warning(f"Could not generate street map: {e}")
 
