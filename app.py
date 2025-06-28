@@ -43,13 +43,19 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    # Section tracker
     section_title = st.empty()
-    section_title.markdown("<small><strong>📋 Sections Being Analyzed</strong></small>", unsafe_allow_html=True)
     section_placeholder = st.empty()
+    progress_bar = st.progress(0)
+
+    section_title.markdown("<small><strong>📋 Sections Being Analyzed</strong></small>", unsafe_allow_html=True)
+
+    processed_sections = []
+    total_sections = 16  # Update based on actual number of sections processed
 
     def show_section(title):
-        section_placeholder.markdown(f"- {title}")
+        processed_sections.append(f"- {title}")
+        section_placeholder.markdown("\n".join(processed_sections))
+        progress_bar.progress(min(len(processed_sections) / total_sections, 1.0))
 
     with st.spinner("Generating report. Please wait..."):
         df = pd.read_excel(uploaded_file)
@@ -67,7 +73,7 @@ if uploaded_file:
         section_count = 1
 
         def add_section(title, chart_data, chart_type="bar"):
-            global section_count
+            nonlocal section_count
             if chart_data.empty:
                 return
 
@@ -94,12 +100,13 @@ if uploaded_file:
                 f"Highlight the most common types and any interesting patterns."
             )
             try:
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=300
-                )
-                summary = response.choices[0].message.content.strip()
+                with st.spinner(f"Analyzing section: {title}"):
+                    response = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[{"role": "user", "content": prompt}],
+                        max_tokens=300
+                    )
+                    summary = response.choices[0].message.content.strip()
             except Exception as e:
                 summary = f"[GPT Error: {e}]"
 
@@ -137,26 +144,26 @@ if uploaded_file:
         add_grouped_section("Driver 1 Condition", "Driver 1 Condition Trends")
         add_grouped_section("Driver 2 Condition", "Driver 2 Condition Trends")
 
-        if 'Accident Date' in df.columns and 'Classification Of Accident' in df.columns:
+        if 'Accident Date' in df.columns:
             try:
                 df['Accident Date'] = pd.to_datetime(df['Accident Date'], errors='coerce')
                 df['Day of Week'] = df['Accident Date'].dt.day_name()
                 weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
                 weekday_grouped = df.groupby(['Day of Week', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(weekday_order)
-                add_section("Accident Type by Day of Week", weekday_grouped, chart_type="bar")
+                add_section("Accident Type by Day of Week", weekday_grouped)
 
                 df['Day Type'] = df['Accident Date'].dt.dayofweek.apply(lambda x: 'Weekend' if x >= 5 else 'Weekday')
                 daytype_grouped = df.groupby(['Day Type', 'Classification Of Accident']).size().unstack(fill_value=0)
-                add_section("Accident Type by Weekday vs Weekend", daytype_grouped, chart_type="bar")
+                add_section("Accident Type by Weekday vs Weekend", daytype_grouped)
 
                 df['Accident Month'] = df['Accident Date'].dt.month_name()
                 month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
                 month_grouped = df.groupby(['Accident Month', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(month_order)
-                add_section("Accident Type by Month", month_grouped, chart_type="bar")
+                add_section("Accident Type by Month", month_grouped)
             except Exception as e:
                 st.warning(f"Could not process date-based charts: {e}")
 
-        if 'Accident Time' in df.columns and 'Classification Of Accident' in df.columns:
+        if 'Accident Time' in df.columns:
             try:
                 def clean_time_string(t):
                     if pd.isnull(t): return None
@@ -188,7 +195,7 @@ if uploaded_file:
                 period_order = ['Morning', 'Afternoon', 'Evening', 'Night']
                 df_filtered = df[df['Time Period'].isin(period_order)]
                 time_grouped = df_filtered.groupby(['Time Period', 'Classification Of Accident']).size().unstack(fill_value=0).reindex(period_order)
-                add_section("Accident Type by Time of Day", time_grouped, chart_type="bar")
+                add_section("Accident Type by Time of Day", time_grouped)
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
@@ -237,9 +244,9 @@ if uploaded_file:
         output_path = "collision_report.docx"
         doc.save(output_path)
 
-        # Clear section list from UI
         section_title.empty()
         section_placeholder.empty()
+        progress_bar.empty()
 
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
