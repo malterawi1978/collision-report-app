@@ -114,7 +114,7 @@ if uploaded_file and not st.session_state["report_ready"]:
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=300
                 )
-                    summary = response.choices[0].message.content.strip()
+                summary = response.choices[0].message.content.strip()
             except Exception as e:
                 summary = f"[GPT Error: {e}]"
 
