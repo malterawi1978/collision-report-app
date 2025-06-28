@@ -43,12 +43,25 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    with st.spinner("Generating report. Please wait..."):
+    progress = st.progress(0, text="Starting report generation...")
+        left_col, right_col = st.columns([4, 1])
+        with left_col:
+            pass
+        with right_col:
+            st.markdown("### 📋 Sections")
+            section_placeholder = st.empty()
+        steps = 20
+        current_step = 0
+        def update_progress(msg):
+            nonlocal current_step
+            current_step += 1
+            progress.progress(min(current_step, steps) / steps, text=msg)
         df = pd.read_excel(uploaded_file)
-        df.dropna(how='all', inplace=True)  # Drop rows where all values are NaN
-        df = df.dropna(subset=['Classification Of Accident'])  # Ensure key field exists
-        df = df.applymap(lambda x: x.strip().replace("**", "") if isinstance(x, str) else x)
-        df = df[~df.isin(['', ' ', None]).any(axis=1)]  # Remove rows with empty string values
+        df.dropna(how='all', inplace=True)
+        df = df.dropna(subset=['Classification Of Accident'])
+        df = df.applymap(lambda x: x.strip().replace("**", "").replace("###", "") if isinstance(x, str) else x)
+        df = df[~df.isin(['', ' ', None]).any(axis=1)]
+        update_progress("Excel file read successfully.")
         st.success("File read successfully.")
 
         doc = Document()
@@ -94,12 +107,14 @@ if uploaded_file:
                 summary = f"[GPT Error: {e}]"
 
             clean_title = title.replace("**", "").replace("###", "").strip().replace("#", "").strip()
+            section_placeholder.markdown(f"**Section {section_count}: {clean_title}**")
+            update_progress(f"Analyzing {clean_title}")
             doc.add_heading(f"Section {section_count}: {clean_title}", level=1)
             doc.add_picture(img_stream, width=Inches(5.5))
             caption = doc.add_paragraph(f"Figure {section_count}: {clean_title}")
             caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             caption.runs[0].italic = True
-            clean_summary = summary.replace("**", "").strip()
+            clean_summary = summary.replace("**", "").replace("###", "").strip()
             para = doc.add_paragraph(clean_summary)
             para.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
             para.runs[0].font.size = Pt(11)
@@ -112,12 +127,9 @@ if uploaded_file:
                 if not grouped.empty:
                     add_section(title, grouped, chart_type="bar")
 
-        # Pie chart only for severity
         if 'Classification Of Accident' in df.columns:
             add_section("Accident Severity Distribution", df['Classification Of Accident'].value_counts(), chart_type="pie")
 
-        # Removed Section 2: Severity by Location
-# add_grouped_section("Location", "Severity by Location")
         add_grouped_section("Accident Year", "Accidents by Year")
         add_grouped_section("Accident Day", "Accidents by Day")
         add_grouped_section("Light", "Light Condition Distribution")
@@ -130,7 +142,6 @@ if uploaded_file:
         add_grouped_section("Driver 1 Condition", "Driver 1 Condition Trends")
         add_grouped_section("Driver 2 Condition", "Driver 2 Condition Trends")
 
-        # Time-based breakdowns (unchanged)
         if 'Accident Date' in df.columns and 'Classification Of Accident' in df.columns:
             try:
                 df['Accident Date'] = pd.to_datetime(df['Accident Date'], errors='coerce')
@@ -186,7 +197,6 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        # Map export only (no longer in report)
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 df["Classification Of Accident"] = df["Classification Of Accident"].astype(str).str.strip().str.lower()
@@ -228,8 +238,6 @@ if uploaded_file:
                 map_path = "accident_map.png"
                 plt.savefig(map_path, dpi=600)
                 plt.close()
-
-                # Map download moved below report, file_name="accident_map.png", mime="image/png")
         except Exception as e:
             st.warning(f"Could not generate street map: {e}")
 
@@ -238,6 +246,7 @@ if uploaded_file:
         doc.add_page_break()
 
         output_path = "collision_report.docx"
+        update_progress("Finalizing and saving the report")
         doc.save(output_path)
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
@@ -248,4 +257,3 @@ if uploaded_file:
             st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
 else:
     st.info("Please upload an Excel file to begin.")
-
