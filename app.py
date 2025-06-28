@@ -43,23 +43,20 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-                    progress = st.progress(0, text="Starting report generation...")
-                left_col, right_col = st.columns([4, 1])
-                with right_col:
-            st.markdown("### 📋 Sections")
-            section_placeholder = st.empty()
-                steps = 20
-                current_step = 0
-                def update_progress(msg):
-                        nonlocal current_step
-                        current_step += 1
-                        progress.progress(min(current_step, steps) / steps, text=msg)
+    left_col, right_col = st.columns([4, 1])
+    with right_col:
+        st.markdown("### 📋 Sections")
+        section_placeholder = st.empty()
+
+    def show_section(title):
+        section_placeholder.markdown(f"- {title}")
+
+    with st.spinner("Generating report. Please wait..."):
         df = pd.read_excel(uploaded_file)
         df.dropna(how='all', inplace=True)
         df = df.dropna(subset=['Classification Of Accident'])
-        df = df.applymap(lambda x: x.strip().replace("**", "").replace("###", "") if isinstance(x, str) else x)
+        df = df.applymap(lambda x: x.strip().replace("**", "") if isinstance(x, str) else x)
         df = df[~df.isin(['', ' ', None]).any(axis=1)]
-        update_progress("Excel file read successfully.")
         st.success("File read successfully.")
 
         doc = Document()
@@ -73,6 +70,8 @@ if uploaded_file:
             global section_count
             if chart_data.empty:
                 return
+
+            show_section(title)
 
             img_stream = io.BytesIO()
             plt.figure(figsize=(6, 4))
@@ -105,14 +104,12 @@ if uploaded_file:
                 summary = f"[GPT Error: {e}]"
 
             clean_title = title.replace("**", "").replace("###", "").strip().replace("#", "").strip()
-            section_placeholder.markdown(f"**Section {section_count}: {clean_title}**")
-            update_progress(f"Analyzing {clean_title}")
             doc.add_heading(f"Section {section_count}: {clean_title}", level=1)
             doc.add_picture(img_stream, width=Inches(5.5))
             caption = doc.add_paragraph(f"Figure {section_count}: {clean_title}")
             caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             caption.runs[0].italic = True
-            clean_summary = summary.replace("**", "").replace("###", "").strip()
+            clean_summary = summary.replace("**", "").strip()
             para = doc.add_paragraph(clean_summary)
             para.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
             para.runs[0].font.size = Pt(11)
@@ -244,7 +241,6 @@ if uploaded_file:
         doc.add_page_break()
 
         output_path = "collision_report.docx"
-        update_progress("Finalizing and saving the report")
         doc.save(output_path)
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
