@@ -43,17 +43,17 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-            progress = st.progress(0, text="Starting report generation...")
-        left_col, right_col = st.columns([4, 1])
-        with right_col:
+                    progress = st.progress(0, text="Starting report generation...")
+                left_col, right_col = st.columns([4, 1])
+                with right_col:
             st.markdown("### 📋 Sections")
             section_placeholder = st.empty()
-        steps = 20
-        current_step = 0
-        def update_progress(msg):
-            nonlocal current_step
-            current_step += 1
-            progress.progress(min(current_step, steps) / steps, text=msg)
+                steps = 20
+                current_step = 0
+                def update_progress(msg):
+                        nonlocal current_step
+                        current_step += 1
+                        progress.progress(min(current_step, steps) / steps, text=msg)
         df = pd.read_excel(uploaded_file)
         df.dropna(how='all', inplace=True)
         df = df.dropna(subset=['Classification Of Accident'])
