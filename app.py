@@ -110,7 +110,8 @@ if uploaded_file:
         if 'Classification Of Accident' in df.columns:
             add_section("Accident Severity Distribution", df['Classification Of Accident'].value_counts(), chart_type="pie")
 
-        add_grouped_section("Location", "Severity by Location")
+        # Removed Section 2: Severity by Location
+# add_grouped_section("Location", "Severity by Location")
         add_grouped_section("Accident Year", "Accidents by Year")
         add_grouped_section("Accident Day", "Accidents by Day")
         add_grouped_section("Light", "Light Condition Distribution")
@@ -222,9 +223,7 @@ if uploaded_file:
                 plt.savefig(map_path, dpi=600)
                 plt.close()
 
-                st.markdown("### 🗺️ Download Accident Map")
-                with open(map_path, "rb") as img_file:
-                    st.download_button("📅 Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
+                # Map download moved below report, file_name="accident_map.png", mime="image/png")
         except Exception as e:
             st.warning(f"Could not generate street map: {e}")
 
@@ -237,5 +236,8 @@ if uploaded_file:
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
             st.download_button("📅 Download Report", f, file_name="collision_report.docx")
+                st.markdown("**🗺️ Download Accident Map**")
+                with open(map_path, "rb") as img_file:
+                    st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
 else:
     st.info("Please upload an Excel file to begin.")
