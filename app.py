@@ -21,6 +21,7 @@ st.set_page_config(
 )
 
 logo = Image.open("Collisio_Logo.png")
+st.markdown("<div style='margin-top: -60px'></div>", unsafe_allow_html=True)
 st.image(logo, width=100)
 
 st.title("🤖 Collisio")
