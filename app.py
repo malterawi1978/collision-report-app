@@ -109,12 +109,11 @@ if uploaded_file and not st.session_state["report_ready"]:
                 f"Highlight the most common types and any interesting patterns."
             )
             try:
-                with st.spinner(f"Analyzing section: {title}"):
-                    response = client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[{"role": "user", "content": prompt}],
-                        max_tokens=300
-                    )
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=300
+                )
                     summary = response.choices[0].message.content.strip()
             except Exception as e:
                 summary = f"[GPT Error: {e}]"
