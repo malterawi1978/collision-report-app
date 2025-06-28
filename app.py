@@ -32,7 +32,7 @@ st.markdown("Download our ready-made Excel template to ensure your data is struc
 
 with open("collision_template.xlsx", "rb") as f:
     st.download_button(
-        label="📅 Download Excel Template",
+        label="🗕️ Download Excel Template",
         data=f,
         file_name="collision_template.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -56,7 +56,7 @@ if uploaded_file:
 
         def add_section(title, chart_data, chart_type="bar"):
             global section_count
-            if len(chart_data) < 2:
+            if chart_data.empty:
                 return
 
             img_stream = io.BytesIO()
@@ -100,30 +100,30 @@ if uploaded_file:
             doc.add_page_break()
             section_count += 1
 
+        def add_grouped_section(column_name, title):
+            if column_name in df.columns and 'Classification Of Accident' in df.columns:
+                grouped = df.groupby([column_name, 'Classification Of Accident']).size().unstack(fill_value=0)
+                if not grouped.empty:
+                    add_section(title, grouped, chart_type="bar")
+
+        # Pie chart only for severity
         if 'Classification Of Accident' in df.columns:
             add_section("Accident Severity Distribution", df['Classification Of Accident'].value_counts(), chart_type="pie")
 
-        if 'Classification Of Accident' in df.columns and 'Location' in df.columns:
-            grouped = df.groupby(['Location', 'Classification Of Accident']).size().unstack(fill_value=0)
-            if not grouped.empty:
-                add_section("Severity by Location", grouped.sum(axis=1).sort_values(ascending=False).head(10), chart_type="bar")
+        add_grouped_section("Location", "Severity by Location")
+        add_grouped_section("Accident Year", "Accidents by Year")
+        add_grouped_section("Accident Day", "Accidents by Day")
+        add_grouped_section("Light", "Light Condition Distribution")
+        add_grouped_section("Environment Condition 1", "Environment Condition 1 Distribution")
+        add_grouped_section("Environment Condition 2", "Environment Condition 2 Distribution")
+        add_grouped_section("Initial Impact Type", "Initial Impact Type Analysis")
+        add_grouped_section("Impact Location", "Impact Location Analysis")
+        add_grouped_section("Apparent Driver 1 Action", "Driver 1 Action Trends")
+        add_grouped_section("Apparent Driver 2 Action", "Driver 2 Action Trends")
+        add_grouped_section("Driver 1 Condition", "Driver 1 Condition Trends")
+        add_grouped_section("Driver 2 Condition", "Driver 2 Condition Trends")
 
-        for time_col in ['Accident Year', 'Accident Day']:
-            if time_col in df.columns:
-                add_section(f"Accidents by {time_col}", df[time_col].value_counts().sort_index(), chart_type="bar")
-
-        for env_col in ['Light', 'Environment Condition 1', 'Environment Condition 2']:
-            if env_col in df.columns:
-                add_section(f"{env_col} Distribution", df[env_col].value_counts(), chart_type="bar")
-
-        for impact_col in ['Initial Impact Type', 'Impact Location']:
-            if impact_col in df.columns:
-                add_section(f"{impact_col} Analysis", df[impact_col].value_counts(), chart_type="pie")
-
-        for driver_col in ['Apparent Driver 1 Action', 'Apparent Driver 2 Action', 'Driver 1 Condition', 'Driver 2 Condition']:
-            if driver_col in df.columns:
-                add_section(f"{driver_col} Trends", df[driver_col].value_counts(), chart_type="bar")
-
+        # Time-based breakdowns (unchanged)
         if 'Accident Date' in df.columns and 'Classification Of Accident' in df.columns:
             try:
                 df['Accident Date'] = pd.to_datetime(df['Accident Date'], errors='coerce')
@@ -179,7 +179,7 @@ if uploaded_file:
             except Exception as e:
                 st.warning(f"Could not process time of day: {e}")
 
-        # NEW: Generate and offer external map file
+        # Map export only (no longer in report)
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
                 df["Classification Of Accident"] = df["Classification Of Accident"].astype(str).str.strip().str.lower()
@@ -224,7 +224,7 @@ if uploaded_file:
 
                 st.markdown("### 🗺️ Download Accident Map")
                 with open(map_path, "rb") as img_file:
-                    st.download_button("📥 Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
+                    st.download_button("📅 Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
         except Exception as e:
             st.warning(f"Could not generate street map: {e}")
 
@@ -236,6 +236,6 @@ if uploaded_file:
         doc.save(output_path)
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
-            st.download_button("📥 Download Report", f, file_name="collision_report.docx")
+            st.download_button("📅 Download Report", f, file_name="collision_report.docx")
 else:
     st.info("Please upload an Excel file to begin.")
