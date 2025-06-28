@@ -239,13 +239,10 @@ if uploaded_file:
         doc.save(output_path)
         st.success("✅ Report is ready!")
         with open(output_path, "rb") as f:
-            st.download_button("📅 Download Report", f, file_name="collision_report.docx")
+            st.download_button("🧾 Download Report", f, file_name="collision_report.docx")
 
         with open(map_path, "rb") as img_file:
             st.markdown("**🗺️ Download Accident Map**")
             st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
-                st.markdown("**🗺️ Download Accident Map**")
-                with open(map_path, "rb") as img_file:
-                    st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
 else:
     st.info("Please upload an Excel file to begin.")
