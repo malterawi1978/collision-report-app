@@ -40,9 +40,17 @@ with open("collision_template.xlsx", "rb") as f:
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+# Initialize session state
+if "report_ready" not in st.session_state:
+    st.session_state["report_ready"] = False
+if "report_path" not in st.session_state:
+    st.session_state["report_path"] = None
+if "map_path" not in st.session_state:
+    st.session_state["map_path"] = None
+
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
-if uploaded_file:
+if uploaded_file and not st.session_state["report_ready"]:
     section_title = st.empty()
     section_placeholder = st.empty()
     progress_bar = st.progress(0)
@@ -235,6 +243,7 @@ if uploaded_file:
                 map_path = "accident_map.png"
                 plt.savefig(map_path, dpi=600)
                 plt.close()
+                st.session_state["map_path"] = map_path
         except Exception as e:
             st.warning(f"Could not generate street map: {e}")
 
@@ -245,15 +254,20 @@ if uploaded_file:
         output_path = "collision_report.docx"
         doc.save(output_path)
 
+        st.session_state["report_path"] = output_path
+        st.session_state["report_ready"] = True
+
         section_title.empty()
         section_placeholder.empty()
         progress_bar.empty()
 
-        st.success("✅ Report is ready!")
-        with open(output_path, "rb") as f:
-            st.download_button("🧾 Download Report", f, file_name="collision_report.docx")
+if st.session_state["report_ready"]:
+    st.success("✅ Report is ready!")
+    with open(st.session_state["report_path"], "rb") as f:
+        st.download_button("🧾 Download Report", f, file_name="collision_report.docx")
 
-        with open(map_path, "rb") as img_file:
+    if st.session_state["map_path"]:
+        with open(st.session_state["map_path"], "rb") as img_file:
             st.markdown("**🗺️ Download Accident Map**")
             st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
 else:
