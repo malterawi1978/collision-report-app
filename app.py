@@ -8,8 +8,11 @@ from docx.shared import Inches, Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from openai import OpenAI
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
-from staticmap import StaticMap, CircleMarker
+from PIL import Image
+import geopandas as gpd
+from shapely.geometry import Point
+import contextily as ctx
+from matplotlib.patches import FancyArrow
 
 st.set_page_config(
     page_title="Collisio – Automated Collision Report Generator",
@@ -178,54 +181,55 @@ if uploaded_file:
 
         try:
             if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Classification Of Accident' in df.columns:
-                type_counts = df['Classification Of Accident'].value_counts()
-                base_colors = ['#0099ff', '#ff7f0e', '#2ca02c']
-                legend_items = {label: base_colors[i % len(base_colors)] for i, label in enumerate(type_counts.index.tolist())}
+                df["Classification Of Accident"] = df["Classification Of Accident"].astype(str).str.strip().str.lower()
+                color_list = [
+                    '#FF0000', '#00CC00', '#0000FF', '#FFA500', '#800080',
+                    '#00FFFF', '#FFC0CB', '#FFFF00', '#00CED1', '#FF1493'
+                ]
+                unique_types = df["Classification Of Accident"].unique()
+                auto_color_map = {stype: color_list[i % len(color_list)] for i, stype in enumerate(unique_types)}
 
-                map_df = df[['Latitude', 'Longitude', 'Classification Of Accident']].dropna()
-                map_df = map_df[(map_df['Latitude'].between(-90, 90)) & (map_df['Longitude'].between(-180, 180))]
+                geometry = [Point(xy) for xy in zip(df["Longitude"], df["Latitude"])]
+                gdf = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:4326").to_crs(epsg=3857)
 
-                if not map_df.empty:
-                    smap = StaticMap(800, 600)
+                fig, ax = plt.subplots(figsize=(14, 12))
+                for acc_type in unique_types:
+                    subset = gdf[gdf["Classification Of Accident"] == acc_type]
+                    color = auto_color_map[acc_type]
+                    label = acc_type.title()
+                    subset.plot(ax=ax, label=label, color=color, markersize=100, edgecolor='none')
 
-                    for _, row in map_df.iterrows():
-                        acc_type_label = str(row['Classification Of Accident']).strip()
-                        color = legend_items.get(acc_type_label, '#0000ff')
-                        marker = CircleMarker((row['Longitude'], row['Latitude']), color, 10)
-                        smap.add_marker(marker)
+                buffer = 500
+                minx, miny, maxx, maxy = gdf.total_bounds
+                ax.set_xlim(minx - buffer, maxx + buffer)
+                ax.set_ylim(miny - buffer, maxy + buffer)
+                ctx.add_basemap(ax, source=ctx.providers.OpenStreetMap.Mapnik, zoom=17)
 
-                    image = smap.render()
-                    overlay = Image.new('RGBA', image.size, (125, 125, 125, 80))
-                    image = Image.alpha_composite(image.convert("RGBA"), overlay)
+                ax.text(0.95, 0.95, 'N', transform=ax.transAxes,
+                        fontsize=20, fontweight='bold', ha='center', va='center', color='black')
+                arrow = FancyArrow(0.95, 0.91, 0, 0.03, transform=ax.transAxes,
+                                   width=0.01, head_width=0.03, head_length=0.02,
+                                   length_includes_head=True, color='black', edgecolor='white')
+                ax.add_patch(arrow)
 
-                    draw = ImageDraw.Draw(image)
-                    font = ImageFont.load_default()
-                    legend_x, legend_y = 20, image.size[1] - 100
-                    draw.rectangle(
-                        [legend_x - 10, legend_y - 10, legend_x + 200, legend_y + 20 + 18 * len(legend_items)],
-                        fill="white", outline="gray"
-                    )
-                    draw.text((legend_x, legend_y), "Accident Type:", fill="black", font=font)
-                    y_offset = 15
-                    for label, color in legend_items.items():
-                        draw.ellipse([legend_x, legend_y + y_offset, legend_x + 10, legend_y + y_offset + 10], fill=color)
-                        draw.text((legend_x + 15, legend_y + y_offset - 2), label, fill="black", font=font)
-                        y_offset += 18
+                ax.set_title("Accident Locations by Type", fontsize=16)
+                ax.axis("off")
+                ax.legend(title="Accident Type", fontsize=10, title_fontsize=11, loc="lower left")
 
-                    map_path = "static_map.png"
-                    image.convert("RGB").save(map_path)
+                plt.tight_layout()
+                map_path = "survey_map_auto_colored.png"
+                plt.savefig(map_path, dpi=600)
+                plt.close()
 
-                    doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
-                    doc.add_picture(map_path, width=Inches(5.5))
-                    caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations colored by type with legend.")
-                    caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                    caption.runs[0].italic = True
-                    doc.add_page_break()
-                    section_count += 1
-                else:
-                    st.warning("Latitude/Longitude data is present but empty or out of bounds.")
+                doc.add_heading(f"Section {section_count}: Spatial Distribution of Accidents", level=1)
+                doc.add_picture(map_path, width=Inches(5.5))
+                caption = doc.add_paragraph(f"Figure {section_count}: Map showing accident locations by type with legend.")
+                caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                caption.runs[0].italic = True
+                doc.add_page_break()
+                section_count += 1
         except Exception as e:
-            st.warning(f"Could not generate static map: {e}")
+            st.warning(f"Could not generate street map: {e}")
 
         doc.add_heading(f"Section {section_count}: Collision Type Diagrams", level=1)
         doc.add_paragraph("[Custom collision type diagrams will be rendered based on type and geometry data in future versions.]")
