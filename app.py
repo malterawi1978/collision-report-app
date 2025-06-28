@@ -246,6 +246,6 @@ if uploaded_file:
             st.markdown("**🗺️ Download Accident Map**")
             st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
 
-    else:
+else:
     st.info("Please upload an Excel file to begin.")
 
