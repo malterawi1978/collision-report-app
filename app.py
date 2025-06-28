@@ -15,7 +15,7 @@ import contextily as ctx
 from matplotlib.patches import FancyArrow
 
 st.set_page_config(
-    page_title="Collisio – Collision Report Generator",
+    page_title="Collisio – Automated Collision Report Generator",
     page_icon="🚦",
     layout="centered"
 )
@@ -24,7 +24,7 @@ logo = Image.open("Collisio_Logo.png")
 st.image(logo, width=100)
 
 st.title("🤖 Collisio")
-st.markdown("### Collision Report Generator")
+st.markdown("### Automated Collision Report Generator")
 st.markdown("Upload your traffic accident data to generate a smart report with charts and insights powered by AI.")
 
 st.markdown("**Need help formatting your accident data?**")
@@ -53,7 +53,7 @@ if uploaded_file:
 
         doc = Document()
         doc.add_heading("Collision Analysis Report", 0)
-        doc.add_paragraph("Prepared by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        doc.add_paragraph("Prepared automatically by Mobility Edge Solution").alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         doc.add_page_break()
 
         section_count = 1
@@ -99,7 +99,8 @@ if uploaded_file:
             caption = doc.add_paragraph(f"Figure {section_count}: {clean_title}")
             caption.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             caption.runs[0].italic = True
-            para = doc.add_paragraph(summary)
+            clean_summary = summary.replace("**", "").strip()
+            para = doc.add_paragraph(clean_summary)
             para.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
             para.runs[0].font.size = Pt(11)
             doc.add_page_break()
@@ -245,7 +246,6 @@ if uploaded_file:
         with open(map_path, "rb") as img_file:
             st.markdown("**🗺️ Download Accident Map**")
             st.download_button("🗺️ Download Map (PNG)", img_file.read(), file_name="accident_map.png", mime="image/png")
-
 else:
     st.info("Please upload an Excel file to begin.")
 
