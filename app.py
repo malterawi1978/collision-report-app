@@ -43,10 +43,8 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 uploaded_file = st.file_uploader("📂 Upload Excel File", type=["xlsx"])
 
 if uploaded_file:
-    left_col, right_col = st.columns([4, 1])
-    with right_col:
-        st.markdown("### 📋 Sections")
-        section_placeholder = st.empty()
+    st.markdown("### 📋 Sections Being Analyzed")
+    section_placeholder = st.empty()
 
     def show_section(title):
         section_placeholder.markdown(f"- {title}")
